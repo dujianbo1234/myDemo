@@ -5,6 +5,11 @@ import router from './router'
 import Vant from 'vant';
 import 'vant/lib/index.css';
 
+// 导入vue-resource
+import VueResource from 'vue-resource'
+// 安装vue-resource
+Vue.use(VueResource);
+
 Vue.use(Vant);
 Vue.config.productionTip = false
 
