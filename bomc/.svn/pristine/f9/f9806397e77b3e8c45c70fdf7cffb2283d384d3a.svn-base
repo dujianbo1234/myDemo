@@ -1,0 +1,3325 @@
+
+
+<template>
+  <div>
+    <el-dialog
+      :close-on-click-modal="false"
+      :visible="listvisible"
+      width="480px"
+      top="10vh"
+      @close="listClosed()"
+    >
+      <div class="details-title">
+        <span class="sp">
+          <span>已有的标签</span>
+        </span>
+        <ul class="taglist">
+          <li
+            v-for="(item,index) in listData"
+            :key="item.key"
+            @click="tagItem_click(item,index)"
+            class="taglist-item"
+          >
+            <el-button class="button_list" :class="{button_list_1:item.ischoose,button_list_2:!item.ischoose}">{{item.text}}</el-button>
+          </li>
+        </ul>
+        <div slot="footer" class="dialog-footer" style="float: right;padding-top: 10px;">
+          <el-button @click="listClosed()">取 消</el-button>
+          <el-button class="search_btn" @click="listOpen()">保 存</el-button>
+        </div>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      :close-on-click-modal="false"
+      :visible="outerVisible"
+      width="930px"
+      top="5vh"
+      @close="dialogClosed()"
+    >
+      <!-- 步骤条 -->
+      <div style="position: absolute;top: 71px;right: 454px;z-index: 9999;">
+        <img :src="stepWImg" style="position: absolute;" v-show="stepW">
+      </div>
+
+      <el-steps :active="active" align-center style="margin-bottom: 25px;">
+        <el-step title="基本配置"></el-step>
+        <el-step title="来源配置" style="position: relative;"></el-step>
+        <el-step title="告警配置"></el-step>
+      </el-steps>
+
+      <!-- 基本信息 -->
+      <div class="details-title-name">
+        <div ref="stepOne" class="stepOne">
+          <el-form
+            v-show="flag"
+            ref="form"
+            :model="form"
+            :inline="true"
+            size="small"
+            label-width="150px"
+            :rules="rules"
+            style="margin-left: auto; margin-right: auto; width:730px"
+          >
+            <span class="sp">
+              <span>指标基本信息</span>
+            </span>
+            <div class="logAdd-obj">
+              <el-form-item label="指标名" prop="name">
+                <el-input
+                  v-model="form.name"
+                  placeholder="请输入字母或者数字"
+                  @keyup.native="form.name=form.name.replace(/[^\w\.\/,./]/ig,'')"
+                />
+              </el-form-item>
+              <el-form-item label="指标编码" prop="code">
+                <el-input
+                  v-model="form.code"
+                  placeholder="请输入字母或者数字"
+                  @keyup.native="form.code=form.code.replace(/[^\w\-]/ig,'')"
+                />
+              </el-form-item>
+              <el-form-item label="指标别名" prop="alias">
+                <el-input v-model="form.alias" placeholder="请输入指标别名"/>
+              </el-form-item>
+              <el-form-item label="指标单位" prop="unit">
+                <el-input v-model="form.unit"/>
+              </el-form-item>
+              <el-form-item label="指标类型" prop="metricType">
+                <el-select v-model="form.metricType" placeholder="请选择" style="width: 93%;">
+                  <el-option
+                    v-for="item in metricTypeOpt"
+                    :key="item.value"
+                    :value="item.value"
+                    :label="item.label"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="指标维度" prop="metricDimension" style="margin-left: -1.3%;">
+                <el-select
+                  v-model="form.metricDimension"
+                  multiple
+                  collapse-tags
+                  placeholder="请选择"
+                  style="width: 90%;"
+                >
+                  <el-option
+                    v-for="item in metricDimensionOpt"
+                    :key="item.value"
+                    :value="item.value+''"
+                    :label="item.label"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="是否启用" style="display:none;">
+                <!-- <el-switch v-model="form.status" /> -->
+                <el-radio-group v-model="form.status" :disabled="updateType==='update'">
+                  <el-radio :label="0">否</el-radio>
+                  <el-radio :label="1">是</el-radio>
+                </el-radio-group>
+              </el-form-item>
+              <el-form-item label/>
+              <el-form-item label="指标描述" style="display:block" prop="description">
+                <el-input
+                  v-model="form.description"
+                  type="textarea"
+                  rows="4"
+                  cols="60"
+                  placeholder="请输入指标描述"
+                />
+              </el-form-item>
+              <el-form-item
+                label="指标标签"
+                style="display:block;position: relative"
+                class="tages_name"
+              >
+                <el-tag
+                  :key="tag"
+                  v-for="tag in dynamicTags"
+                  closable
+                  :disable-transitions="false"
+                  @close="handleClose(tag)"
+                >{{tag}}</el-tag>
+                <el-input
+                  class="input-new-tag"
+                  v-if="inputVisible"
+                  v-model="form.inputValue"
+                  ref="saveTagInput"
+                  size="small"
+                  @keyup.enter.native="handleInputConfirm"
+                  @blur="handleInputConfirm"
+                ></el-input>
+                <el-button v-else class="button-new-tag" size="small" @click="showInput">自定义标签</el-button>
+                <el-button class="button-new-tag" size="small" @click="showTagList">已有的标签</el-button>
+                <span
+                  v-show="showtagName"
+                  style="display: block; position: absolute;bottom: -28px;left: 0;color: #f56c6c;font-size: 12px;"
+                >指标标签不能为空</span>
+              </el-form-item>
+            </div>
+            <el-form-item style=" display: block;">
+              <span class="sp">
+                <span>指标计算类型</span>
+              </span>
+              <!-- <el-switch v-model="form.status" /> -->
+              <el-radio-group
+                v-model="form.calcType"
+                style="margin-left: 88px;display: block;margin-top: 10px;"
+              >
+                <el-radio :label="0">原始指标</el-radio>
+                <el-radio :label="1">聚合指标</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <!-- 原始指标 -->
+      <div class="details-title-name">
+        <div ref="stepTwo" class="stepTwo">
+          <el-form
+            ref="formY"
+            :model="formY"
+            :inline="true"
+            size="small"
+            :rules="rules2"
+            label-width="150px"
+            style="margin-left: auto; margin-right: auto; width:730px"
+          >
+            <span class="sp">
+              <span>来源配置</span>
+            </span>
+            <div class="logAdd-obj">
+              <el-form-item label="指标所属资源类型" prop="resourceType">
+                <!--  <el-cascader :options="resourceTypeOpt" v-model="form.resourceType" placeholder="试试搜索" filterable style="width:185px" @change="show" /> -->
+                <el-cascader
+                  :options="treeData"
+                  v-model="formY.resourceType"
+                  style="width:185px"
+                  @change="getCidParam"
+                  placeholder="请选择"
+                />
+              </el-form-item>
+              <el-form-item
+                label="采集频率"
+                prop="frequency"
+                :rules="[{
+                        required: true,
+                        pattern: /^([1-9]\d*)$/,
+                         message: '请输入大于0的整数', 
+                         trigger: 'blur'},
+                        ]"
+              >
+                <el-input
+                  v-model="frequency"
+                  style="width:100px"
+                  placeholder="请输入整数"
+                  maxlength="10"
+                />
+                <el-select v-model="isFrequency" placeholder="请选择" style="width:94px">
+                  <!-- <el-option v-for="item in frequencyOpt" :key="item.value" :label="item.label" :value="item.value" /> -->
+                  <el-option key="second" :value="1" label="秒/次"/>
+                  <!-- <el-option key="minutes" :value="2" label="分/次" /> -->
+                  <!-- <el-option key="hours" :value="3" label="时/次" /> -->
+                  <!-- <el-option key="day" :value="4" label="日/次" /> -->
+                </el-select>
+              </el-form-item>
+              <el-form-item label="数据类型" style="display:block" prop="dataType">
+                <el-select v-model="formY.dataType" placeholder="请选择" style="width:185px">
+                  <el-option key="text" :value="0" label="文本"/>
+                  <el-option key="float" :value="1" label="浮点数"/>
+                  <el-option key="int" :value="2" label="正整数"/>
+                  <el-option key="char" :value="3" label="字符"/>
+                  <el-option key="log" :value="4" label="日志"/>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="采集方式" style="display:block" prop="collectType">
+                <el-checkbox-group v-model="formY.collectType">
+                  <el-row>
+                    <el-checkbox label="0">主机资源模板</el-checkbox>
+                    <el-checkbox label="1">网络设备模板</el-checkbox>
+                    <el-checkbox label="2">中间件模板</el-checkbox>
+                  </el-row>
+                  <el-row>
+                    <el-checkbox label="3">日志模板</el-checkbox>
+                    <el-checkbox label="4">数据库模板</el-checkbox>
+                    <el-checkbox label="5">自定义脚本模板</el-checkbox>
+                  </el-row>
+                </el-checkbox-group>
+              </el-form-item>
+              <span class="sp">
+                <span>是否触发告警</span>
+              </span>
+              <el-form-item label="是否触发告警" style=" display: block;">
+                <!-- <el-switch v-model="form.status" /> -->
+                <el-radio-group v-model="formY.category" @change="stepChange(formY.category)">
+                  <el-radio :label="0">否</el-radio>
+                  <el-radio :label="1">是</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </div>
+
+      <!-- 聚合 -->
+      <div class="details-title-name">
+        <div ref="stepTwos" class="stepTwos">
+          <el-form
+            ref="addForm"
+            :model="addForm"
+            :inline="true"
+            size="small"
+            label-width="150px"
+            :rules="rules3"
+            style="margin-left: auto; margin-right: auto; width:730px"
+          >
+            <span class="sp">
+              <span>来源配置</span>
+            </span>
+            <div class="logAdd-obj">
+              <el-form-item
+                label="聚合频率"
+                prop="frequency"
+                :rules="{required: true,
+                        pattern: /^([1-9]\d*)$/, message: '请输入大于0的整数', trigger: 'blur'}"
+              >
+                <el-input
+                  v-model="frequency"
+                  style="width:100px"
+                  placeholder="请输入整数"
+                  maxlength="10"
+                />
+                <el-select v-model="isFrequency" placeholder="请选择" style="width:94px">
+                  <!-- <el-option v-for="item in frequencyOpt" :key="item.value" :label="item.label" :value="item.value" /> -->
+                  <el-option key="second" :value="1" label="秒/次"/>
+                </el-select>
+              </el-form-item>
+               <el-form-item label="时间对齐设置" prop="alignUnit">
+                <el-select v-model="addForm.alignUnit" placeholder="请选择" style="width:92%">
+                  <el-option key="不对齐" :value="0" label="不对齐"/>
+                  <el-option key="分" :value="4" label="分"/>
+                  <el-option key="时" :value="3" label="时"/>
+                  <el-option key="日" :value="2" label="日"/>
+                  <el-option key="月" :value="1" label="月"/>
+                </el-select>
+              </el-form-item>
+              <!-- <original :data-type.sync="form.dataType" :collect-type.sync="form.collectType" /> -->
+              <el-form-item label="输入源指标" prop="sourceMetric">
+                <el-select
+                  v-model="addForm.sourceMetric"
+                  multiple
+                  collapse-tags
+                  placeholder="请选择"
+                  style="width:190px"
+                  @change="changeSourceMetric"
+                >
+                  <el-option
+                    v-for="item in codeOptions"
+                    :key="item.value"
+                    :value="item.value+''"
+                    :label="item.label"
+                  />
+                </el-select>
+
+                <!-- @blur="changeSourceMetric" -->
+              </el-form-item>
+              <el-form-item label="所属资源类型" prop="resourceType">
+                <!--  <el-cascader :options="resourceTypeOpt" v-model="form.resourceType" placeholder="试试搜索" filterable style="width:185px" @change="show" /> -->
+                <el-cascader
+                  :options="treeData"
+                  v-model="addForm.resourceType"
+                  style="width:185px"
+                  disabled
+                />
+              </el-form-item>
+              <el-form-item label="计算规则" style="display:block" prop="ruleName">
+                <el-select
+                  v-model="addForm.ruleName"
+                  placeholder="请选择"
+                  @change="changeRuleScript(addForm.ruleName)"
+                >
+                  <el-option
+                    v-for="item in metricRuleOpt"
+                    :key="item.label"
+                    :label="item.label"
+                    :value="Number(item.value)"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="规则脚本" style="display:block" class="tages_name">
+                <el-input
+                  v-model="addForm.ruleScript"
+                  :rows="6"
+                  type="textarea"
+                  disabled
+                  style="width:555px"
+                  placeholder="请输入内容"
+                />
+              </el-form-item>
+              <el-form-item label="规则参数" style="display:block" class="tages_name">
+                <template v-if="JSON.stringify(addForm.paramsMap)=='{}'">
+                  该脚本未包含参数
+                </template>
+                <template v-if="this.paramsType=='string'">
+                  <ul>
+                    <li>
+                      <el-form-item
+                        v-for="key of Object.keys(addForm.paramsMap)"
+                        :key="key"
+                        class="el-margin-bottom"
+                        :prop="'paramsMap.'+key"
+                       :rules="{
+                          required: true,
+                          message:'不能输入特殊字符!',
+                           trigger: 'blur',
+                           pattern:/^^[a-zA-Z0-9\u4e00-\u9fa5]+$/,
+                        }"
+                       >
+                        <el-tag>{{ key }}</el-tag>
+                        <el-input v-model="addForm.paramsMap[key]" style="width:80px"/>
+                      </el-form-item>
+                    </li>
+                  </ul>
+                </template>
+                <template v-if="this.paramsType=='double'">
+                  <ul>
+                    <li>
+                      <el-form-item
+                        v-for="key of Object.keys(addForm.paramsMap)"
+                        :key="key"
+                        class="el-margin-bottom"
+                        :prop="'paramsMap.'+key"
+                       :rules="{
+                          required: true,
+                          message:'请输入小数或者整数',
+                           trigger: 'blur',
+                           pattern:/^\d+(\.\d+)?$/,
+                        }"
+                       >
+                        <el-tag>{{ key }}</el-tag>
+                        <el-input v-model="addForm.paramsMap[key]" style="width:80px"/>
+                      </el-form-item>
+                    </li>
+                  </ul>
+                </template> 
+                <template v-if="this.paramsType=='int'">
+                  <ul>
+                    <li>
+                      <el-form-item
+                        v-for="key of Object.keys(addForm.paramsMap)"
+                        :key="key"
+                        class="el-margin-bottom"
+                        :prop="'paramsMap.'+key"
+                       :rules="{
+                          required: true,
+                          message:'请输入整数',
+                           trigger: 'blur',
+                           pattern:/^[1-9]\d*$/,
+                        }"
+                       >
+                        <el-tag>{{ key }}</el-tag>
+                        <el-input v-model="addForm.paramsMap[key]" style="width:80px"/>
+                      </el-form-item>
+                    </li>
+                  </ul>
+                </template> 
+              </el-form-item>
+              <span class="sp">
+                <span>是否触发告警</span>
+              </span>
+              <el-form-item label="是否触发告警" style="display: block;">
+                <el-radio-group v-model="addForm.category" @change="stepTchange(addForm.category)">
+                  <el-radio :label="0">否</el-radio>
+                  <el-radio :label="1">是</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </div>
+
+      <!-- 告警 -->
+      <div class="details-title-name">
+        <div ref="stepThree" class="stepThree">
+          <el-form
+            ref="triggerObj"
+            :model="triggerObj"
+            :inline="true"
+            size="small"
+            :rules="rules1"
+            label-width="150px"
+            style="margin-left: auto; margin-right: auto; width:730px"
+          >
+            <span class="sp">
+              <span>告警配置</span>
+            </span>
+            <div class="logAdd-obj">
+              <el-row>
+                <el-col :span="4">
+                  <el-card class="box-card" style="text-align:center">
+                    <ol>
+                      <li>
+                        <a
+                          key="list_0"
+                          :class="{text:true,item:true,active:clickIndex==='list_0'}"
+                          style="display:block"
+                          href="javascript:void(0);"
+                          @click="selectTrategy(0)"
+                        >默认策略</a>
+                      </li>
+                      <li>
+                        <a
+                          v-for="o in excludeStrategyCount"
+                          :key="'list_'+o"
+                          :class="{text:true,item:true,active:clickIndex==='list_'+o}"
+                          style="display:block"
+                          href="javascript:void(0);"
+                          @click="selectTrategy(o)"
+                        >{{ '特殊策略' + o }}</a>
+                      </li>
+                    </ol>
+                    <el-button icon="el-icon-plus" size="mini" circle @click="addExcludeTrategy()"/>
+                    <el-button
+                      :disabled="excludeStrategyCount==0"
+                      icon="el-icon-minus"
+                      size="mini"
+                      circle
+                      @click="reduceExcludeTrategy()"
+                    />
+                  </el-card>
+                </el-col>
+                <el-col :span="20">
+                  <!-- <template v-if="clickIndex=='list_0'"> -->
+                  <el-form-item label="校验时间" prop="triggerTime">
+                    <el-date-picker
+                      v-model="triggerObj.triggerTime"
+                      :default-time="['12:00:00']"
+                      type="datetimerange"
+                      start-placeholder="开始时间"
+                      end-placeholder="结束时间"
+                    />
+                  </el-form-item>
+                  <el-form-item
+                    v-if="clickIndex!=='list_0'"
+                    label="特殊对象选择"
+                    style="display:block"
+                    prop="ciid"
+                  >
+                    <el-select
+                      v-model="triggerObj.ciid"
+                      multiple
+                      collapse-tags
+                      filterable
+                      default-first-option
+                      placeholder="请选择"
+                    >
+                      <el-option
+                        v-for="item in ciids"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value+''"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="校验器类型" prop="comparatorType">
+                    <el-select
+                      v-model="triggerObj.comparatorType"
+                      placeholder="请选择"
+                      style="width:200px"
+                      @change="changeComparatorType"
+                    >
+                      <el-option
+                        v-for="item in comparatorTypeOpt"
+                        :value="item.value"
+                        :label="item.label"
+                        :key="item.comparatorInfoId"
+                      />
+                      <!-- <el-option value="数值校验器" label="数值校验器" />
+                                <el-option value="变化百分比校验器" label="变化百分比校验器" />
+                                <el-option value="变化量校验器" label="变化量校验器" />
+                                <el-option value="变化率校验器" label="变化率校验器" />
+                                <el-option value="变化校验器" label="变化校验器" />
+                                <el-option value="表达式校验器" label="表达式校验器" />
+                                <el-option value="动态阈值波动率校验器" label="动态阈值波动率校验器" />
+                                <el-option value="动态阈值绝对值校验器" label="动态阈值绝对值校验器" />
+                                <el-option value="时间校验器" label="时间校验器" />
+                                <el-option value="线性差异比例校验器" label="线性差异比例校验器" />
+                      <el-option value="字符串校验器" label="字符串校验器" />-->
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="告警内容" style="display:block" prop="comparatorMsg">
+                    <el-input
+                      v-model="triggerObj.comparatorMsg"
+                      :autosize="{ minRows: 3, maxRows: 4}"
+                      cols="50"
+                      type="textarea"
+                      placeholder="请输入内容"
+                      :disabled="disabled_text"
+                    />
+                  </el-form-item>
+                  <el-form-item label="校验器配置" prop="thresholds">
+                    <el-table :data="triggerObj.thresholds" :header-cell-style="headStyle">
+                      <el-table-column
+                        prop="level"
+                        label="级别"
+                        width="112"
+                        style="text-align: center"
+                      />
+                      <el-table-column
+                        prop="flag"
+                        label="阈值"
+                        width="235"
+                        style="text-align: center"
+                      >
+                        <template slot-scope="scope">
+                          <el-col :span="11">
+                            <el-form-item
+                              :prop="'thresholds.' + scope.$index + '.from'"
+                              :rules="{
+                                    required: true,
+                                  pattern:/^\d+(\.\d+)?$/, message: '请输入数字', trigger: 'blur'
+                                }"
+                            >
+                              <el-input v-model="scope.row.from" maxlength="10" placeholder="输入数字"/>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="2" class="line" style="text-align:center">-</el-col>
+                          <el-col :span="11">
+                            <el-form-item
+                              :prop="'thresholds.' + scope.$index + '.to'"
+                              :rules="{
+                                  pattern:/^\d+(\.\d+)?$/, 
+                                  required: true, message: '请输入数字', trigger: 'blur'
+                                }"
+                            >
+                              <el-input v-model="scope.row.to" maxlength="10" placeholder="输入数字"/>
+                            </el-form-item>
+                          </el-col>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </div>
+          </el-form>
+        </div>
+      </div>
+
+      <!-- <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogClosed()">取 消</el-button>
+        <el-button v-if="form.category&&flag" type="primary" @click="add(form)">下一步</el-button>
+        <el-button v-if="form.category&&!flag" type="primary" @click="flag=true">上一步</el-button>
+        <el-button v-if="!flag" type="primary" @click="updateMetrics(form)">确 定</el-button>
+        <el-button v-if="!form.category" type="primary"  @click="add(form)">下一步</el-button>
+      </div>-->
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogClosed()">取 消</el-button>
+        <el-button
+          v-if="active==1||active==2"
+          class="search_btn"
+          @click="preTip(form,formY,addForm)"
+        >上一步</el-button>
+        <!-- 原始来源配置的下一步 -->
+        <el-button
+          v-if="(active==0||active==1)&&(mystatu1||mystatu2)"
+          class="search_btn"
+          ref="nextBtn"
+          id="next"
+          @click="next(form,formY,addForm,triggerObj)"
+        >下一步</el-button>
+        <el-button
+          v-if="active==1"
+          class="search_btn"
+          @click="updateMetricsDef()"
+          v-show="keepBt"
+          :disabled="disabled"
+        >保 存</el-button>
+        <el-button
+          v-if="active==2"
+          class="search_btn"
+          @click="updateMetrics()"
+          :disabled="disabled"
+        >保 存</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import * as server from "../../../../api/kms";
+import { getUserName } from "@/utils/auth";
+import { throws } from "assert";
+import { debug } from "util";
+import { defaultCoreCipherList, defaultCipherList } from "constants";
+import stepWImg from "@/assets/images/waitStep.png";
+import stepFImg from "@/assets/images/finishStep.png";
+var userfounder = getUserName();
+
+var _ = require("lodash");
+export default {
+  name: "CreateOriginalDialog",
+  props: {
+    dialogStatus: "",
+    //弹窗
+    outerVisible: {
+      type: Boolean,
+      default: false
+    },
+    outerData: {
+      type: Object,
+      default: () => {}
+    },
+    updateType: {
+      type: String,
+      default: "create"
+    },
+    codeMap: {
+      type: Object,
+      default: () => {}
+    },
+    codeOptions: {
+      type: Array,
+      default: () => []
+    }
+  },
+  data() {
+    return {
+      triggerTime: [],
+      keepBt: true,
+      stepWImg: stepWImg,
+      stepFImg: stepFImg,
+      stepW: true,
+      showtagName: false,
+      listvisible: false,
+      listData: [],
+      //标签
+      dynamicTags: [],
+      inputVisible: false,
+      inputValue: "",
+      // 下一步change 参数
+      mystatu1: true,
+      mystatu2: true,
+      myStep: 1,
+      //表格头部
+      headStyle: {
+        "background-color": "#F4F8F9",
+        color: "rgba(0,0,0,0.60)"
+      },
+      //聚合
+      metricRuleOpt: [],
+      active: 0, //步骤条初始化
+      ruleParams: "", //必定要传的参数
+      disabled: false, //禁用
+      disabled_text: true,
+      cidParam: "",
+      cidParamY: "",
+      ciids: [
+        {
+          value: "选项1",
+          label: "主机1"
+        },
+        {
+          value: "选项2",
+          label: "主机2"
+        },
+        {
+          value: "选项3",
+          label: "主机3"
+        },
+        {
+          value: "选项4",
+          label: "主机4"
+        },
+        {
+          value: "选项5",
+          label: "主机5"
+        }
+      ],
+      flag: true, // 弹窗显示
+      putFlag: 0,
+      activeName2: "first",
+      title: "", //标题
+      input: "",
+      value: "",
+      checkType: "",
+      check: false, // rules的name
+      choose: "1",
+      copyForm: _.cloneDeep(this.form),
+      // 表单的参数
+
+      //原始
+      formY: {
+        category: 0, //0为原始指标
+        frequency: "", //采集频率
+        resourceType: [], //指标所属资源类型
+        dataType: 0,
+        collectType: [],
+        ruleParams: "",
+        ruleName: ""
+      },
+      //基础
+      metricId: "",
+      form: {
+        inputValue: "",
+        name: "", //指标名
+        alias: "", //指标别名(规范)
+        calcType: 0, // 原始传参
+        // category: 0, //0为原始指标，聚合为1
+        taskId: "",
+        code: "", //指标编码
+        createTime: 0, //时间
+        description: "", //指标描述
+        founder: getUserName(), //创建人参数
+        category: 0, //0为原始指标
+        // frequency: "", //采集频率
+        resourceType: [], //指标所属资源类型
+        dataType: 0,
+        collectType: [],
+        // label: "", //指标别名(自定义)
+        ruleParams: "",
+        ruleName: "",
+        ruleScript: "",
+        metricDimension: [], //指标维度
+        metricType: "", //指标类型
+        status: 0, //是否启用
+        alignUnit: 0, //时间对齐设置
+        status: 0, //是否启用
+        trigger: {},
+        //指标单位
+        unit: ""
+      },
+      //聚合
+      addForm: {
+        frequency: "", //聚合频率
+        resourceType: [], //所属资源
+        sourceMetric: [],
+        ruleName: "",
+        paramsMap: {},
+        ruleParams:"",
+        cript: "",
+        category: 0,
+        alignUnit: 0, //时间对齐设置
+        //是否告警
+      },
+      paramsMap: "",
+      paramsType: "",
+      // paramsStatu: true,
+      initForm: {},
+      frequency: "",
+      isFrequency: 1, // 频率
+
+      //form的name
+      triggerObj: {
+        triggerTime: "",
+        startTime: "",
+        endTime: "",
+        ciid: [],
+        comparatorType: "",
+        comparatorMsg: "",
+
+        //校验器配置
+        thresholds: [
+          {
+            level: "严重",
+            value: "critical",
+            from: "",
+            to: ""
+          },
+          {
+            level: "主要",
+            value: "major",
+            from: "",
+            to: ""
+          },
+          {
+            level: "一般",
+            value: "normal",
+            from: "",
+            to: "" 
+          },
+          {
+            level: "恢复",
+            value: "reset",
+            from: "",
+            to: ""
+          }
+        ]
+      },
+
+      //为了新加的策略 不会复用前面的策略
+      triggerObj2: {
+        triggerTime: "",
+        startTime: "",
+        endTime: "",
+        ciid: [],
+        comparatorType: "",
+        comparatorMsg: "",
+        thresholds: [
+          {
+            level: "严重",
+            value: "critical",
+            from: "",
+            to: ""
+          },
+          {
+            level: "主要",
+            value: "major",
+            from: "",
+            to: ""
+          },
+          {
+            level: "一般",
+            value: "normal",
+            from: "",
+            to: ""
+          },
+          {
+            level: "恢复",
+            value: "reset",
+            from: "",
+            to: ""
+          }
+        ]
+      },
+
+      // 回显的对象
+      normalStrategy: {},
+      excludeStrategy: [],
+      excludeStrategyCount: 0,
+      metricTypeOpt: [],
+      metricDimensionOpt: [],
+      comparatorTypeOpt: [],
+      comparatorContentMap: {},
+      formLabelWidth: "120px",
+      metricsDefData: [],
+      code: "",
+      clickIndex: "list_0",
+      triggerOpt: 0, // 是否触发告警
+      formInline: {
+        name: "",
+        code: "test_metrics-kafka",
+        metric_type: "",
+        startTime: "",
+        endTime: ""
+      },
+
+      //告警校验
+      rules1: {
+        comparatorType: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        comparatorMsg: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        ciid: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        triggerTime: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        thresholds: [
+          {
+            required: true
+          }
+        ]
+      },
+      //基础
+      rules: {
+        name: [
+          {
+            required: true,
+            message: "请输入字母",
+            trigger: "blur"
+          },
+          { min: 1, max: 20, message: "长度不能超过20个字符" }
+        ],
+        code: [
+          { required: true, message: "请输入字母或者数字", trigger: "blur" }
+        ],
+        alias: [
+          {
+            required: true,
+            message: "请输入指标别名",
+            trigger: "blur"
+          },
+          { min: 1, max: 20, message: "长度不能超过20个字符" }
+        ],
+        description: [
+          {
+            required: true,
+            message: "请输入内容",
+            trigger: "blur"
+          }
+        ],
+        metricType: [
+          {
+            required: true,
+            message: "请选择指标类型",
+            trigger: "blur"
+          }
+        ],
+        metricDimension: [
+          {
+            required: true,
+            message: "请选择指标维度",
+            type: "array",
+            trigger: "change"
+          }
+        ]
+      },
+      //原始
+      rules2: {
+        collectType: [
+          {
+            type: "array",
+            required: true,
+            message: "请至少选择一个采集方式",
+            trigger: "change"
+          }
+        ],
+        dataType: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        resourceType: [
+          {
+            required: true,
+            message: "请选择指标所属资源类型",
+            type: "array",
+            trigger: "change"
+          }
+        ]
+        // frequency: [
+        //   { required: true, message: "不能为空" },
+        //   { type: "number", message: "必须为数字" },
+        //   { pattern: /^([1-9]\d*)$/, message: "请输入大于0的整数" }
+        // ],
+      },
+      //聚合
+      rules3: {
+        alignUnit: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ],
+        sourceMetric: [
+          {
+            required: true,
+            trigger: "change",
+            message: "请选择输入源指标",
+            type: "array"
+          }
+        ],
+        resourceType: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur",
+            type: "array"
+          }
+        ],
+        ruleName: [
+          {
+            required: true,
+            trigger: "blur",
+            message: "请选择计算规则"
+          }
+        ],
+        ruleScript: [
+          {
+            required: true,
+            message: "不能为空",
+            trigger: "blur"
+          }
+        ]
+      }
+    };
+  },
+  //资源的接口
+  computed: {
+    treeData() {
+      return this.$store.state.resourceManagement.treeData;
+    }
+  },
+  watch: {
+    "form.dataType": function(newValue, oldValue) {},
+    triggerTime: {
+      handler(newValue, oldValue) {
+        this.triggerObj.startTime = newValue[0];
+        this.triggerObj.endTime = newValue[1];
+      },
+      deep: true
+    },
+
+    outerData: {
+      handler(newValue, oldValue) {
+        if (JSON.stringify(newValue) !== "{}") {
+          debugger
+          var subForm = _.cloneDeep(newValue);
+          //聚合输入指标源
+          subForm.resourceType = subForm.resourceType.split(".");
+          subForm.tags = subForm.tags.split(",");
+          // 特殊对象选择回显
+          this.$set(this, "cidParam", "");
+          // this.$set(this, 'cidParamY', '')
+           const length = subForm.resourceType.length;
+            this.form.alias = subForm.alias;
+            this.addForm.alignUnit = subForm.alignUnit, // 时间对齐
+            this.form.calcType = subForm.calcType,
+            this.frequency = subForm.frequency, // 采集参数
+            this.form.category = subForm.category, // 原始
+            this.form.code = subForm.code, // 编码
+            this.dynamicTags = subForm.tags, ///标签
+            this.formY.collectType = subForm.collectType,
+            this.form.createTime = subForm.createTime,
+            this.dataType = subForm.dataType,
+            this.form.description = subForm.description, //描述
+            this.founder = subForm.founder, //创建人参数
+            this.form.metricDimension = subForm.metricDimension, //维度
+            this.metricId = subForm.metricId,
+            this.form.metricType = subForm.metricType, // 类型
+            this.form.name = subForm.name, //名字
+            this.formY.resourceType = subForm.resourceType, //所属资源
+            // 原始
+            this.formY.category = subForm.category;
+            this.formY.ruleParams = subForm.ruleParams,
+            this.formY.ruleName = subForm.ruleName,
+            this.formY.ruleScript = subForm.ruleScript,
+            this.formY.sourceMetric = subForm.sourceMetric,
+            this.formY.frequency = subForm.frequency, // 采集参数
+            // 聚合
+            this.addForm.category = subForm.category;
+            this.addForm.ruleParams =subForm.ruleParams;
+            this.addForm.ruleName = subForm.ruleName,
+            this.addForm.ruleScript = subForm.ruleScript,
+            this.addForm.resourceType = subForm.resourceType;
+            this.addForm.sourceMetric = subForm.sourceMetric,
+            this.addForm.frequency = subForm.frequency, // 采集参数
+            this.status = subForm.status,
+            this.form.tags = subForm.tags,
+            this.form.unit = subForm.unit;
+            this.cidParam = subForm.resourceType[length - 1];
+            this.getCiids();
+          if (this.addForm.category == 1 && this.formY.category == 1) {
+            this.mystatu2 = true;
+            }
+
+          if (subForm.calcType == 0) {
+            this.normalStrategy = {};
+            this.excludeStrategyCount = [];
+            this.triggerTime = "";
+            this.triggerObj.comparatorType = "";
+            this.triggerObj.thresholds = [
+              {
+                level: "严重",
+                value: "critical",
+                from: "",
+                to: ""
+              },
+              {
+                level: "主要",
+                value: "major",
+                from: "",
+                to: ""
+              },
+              {
+                level: "一般",
+                value: "normal",
+                from: "",
+                to: ""
+              },
+              {
+                level: "恢复",
+                value: "reset",
+                from: "",
+                to: ""
+              }
+            ];
+          }
+           if (subForm.ruleParams && subForm.ruleParams !== "null") {
+            this.addForm.paramsMap = JSON.parse(subForm.ruleParams);
+            }
+          //  this.$set(this.addForm, "paramsMap", this.paramsMap);
+          //  this.addForm.paramsMap = JSON.parse(subForm.ruleParams);
+          if (
+            subForm.trigger.hasOwnProperty("excludeStrategy") &&
+            subForm.category == 1
+          ) {
+            this.excludeStrategy = subForm.trigger.excludeStrategy;
+            this.excludeStrategy.ciid = subForm.trigger.excludeStrategy.ciid;
+            this.excludeStrategyCount = this.excludeStrategy.length;
+
+            this.normalStrategy = subForm.trigger.normalStrategy;
+            this.triggerObj = this.parseNormalStrategyObj(this.normalStrategy);
+            this.excludeStrategy = subForm.trigger.excludeStrategy;
+          } else {
+            // this.outerVisible = true;
+            // this.changeRuleScript(this.addForm.ruleName);
+            // this.form = this.copyForm;
+            // this.frequency = "";
+            this.initTrigger();
+            this.triggerTime = [new Date(), new Date()];
+          }
+        } else {
+          this.outerVisible = true, 
+          this.updateType = "create";
+          this.form.alias = "";
+          this.addForm.alignUnit = 0; // 时间对齐
+          this.form.calcType = 0;
+          this.active = 0;
+          this.form.category = ""; // 原始
+          this.form.code = ""; // 编码
+          this.form.tags = this.dynamicTags; ///标签
+          this.formY.collectType = [];
+          this.form.createTime = "";
+          this.form.dataType = "";
+          this.form.description = ""; //描述
+          this.form.founder = getUserName(), //创建人参数
+          this.frequency = "", // 采集参数
+          this.form.metricDimension = [], //维度
+          this.metricId = "",
+          this.form.metricType = "", // 类型
+          this.form.name = "", //名字
+          this.formY.resourceType = [], //所属资源
+            // 原始
+          this.formY.category = "";
+          this.formY.ruleParams = "",
+          this.formY.ruleName = "",
+          this.formY.ruleScript = "",
+          this.formY.sourceMetric = [],
+            // 聚合
+          this.paramsType= this.paramsType
+          this.addForm.paramsMap={}
+          this.addForm.category = 0;
+          this.addForm.ruleParams = "",
+          this.addForm.ruleName = "",
+          this.addForm.ruleScript = "",
+          this.addForm.resourceType = [],
+          this.addForm.sourceMetric = [],
+          this.form.status = 0,
+          this.dynamicTags = [];
+          this.form.inputValue = "";
+
+          this.trigger = {};
+          this.normalStrategy = {};
+          this.excludeStrategyCount = [];
+          this.triggerTime = "";
+          this.form.unit = "";
+        }
+      },
+      deep: true
+    },
+    // 计算采集的秒数
+    frequency: {
+      handler: function handler(newValue, oldValue) {
+        var flag = this.isFrequency;
+        var count = 1;
+        count = flag === 2 ? count * 60 : count;
+        count = flag === 3 ? count * 60 * 60 : count;
+        count = flag === 4 ? count * 60 * 60 * 60 : count;
+        // console.info(this.form.frequency)
+        this.formY.frequency = Number(newValue) * count;
+        this.addForm.frequency = Number(newValue) * count;
+      }
+    },
+    triggerObj: {
+      handler(newValue, oldValue) {
+        const tempIndex = this.clickIndex;
+        const index = Number(tempIndex.replace("list_", ""));
+        if (newValue.triggerTime) {
+          let [startTime, endTime] = newValue.triggerTime;
+          newValue.startTime = startTime;
+          newValue.endTime = endTime;
+          this.triggerTime;
+        }
+        if (index === 0) {
+          this.normalStrategy = this.createNormalStrategyObj(this.triggerObj);
+        } else {
+          this.excludeStrategy[index - 1] = this.createExcludeStrategyObj(
+            this.triggerObj
+          );
+        }
+        const obj = {};
+        obj["excludeStrategy"] = this.excludeStrategy;
+        obj["normalStrategy"] = this.normalStrategy;
+        this.form.trigger = _.assign(this.form.trigger, obj);
+      },
+      deep: true,
+      immediate: true
+    }
+  },
+  created() {
+    if (!this.$store.state.resourceManagement.on_treeData) {
+      this.$store.dispatch("treeData");
+    }
+    this.initData();
+  },
+
+  methods: {
+    //聚合下一步
+    add(form) {
+      this.$refs.form.validate(valid => {
+        if (!valid) {
+          this.$message({
+            showClose: true,
+            message: "不允许提交空白表单!请完整填写弹框信息！！",
+            type: "error"
+          });
+          return true;
+        } else {
+          this.flag = false;
+          return false;
+        }
+      });
+    },
+
+    // 计算规则
+    changeRuleScript(value) {
+      const index = _.findIndex(this.metricRuleOpt, function(o) {
+        return Number(o.value) === value;
+      });
+      let ruleParams = [];
+      if (index > -1) {
+        this.addForm.ruleScript = this.metricRuleOpt[index].script;
+        this.addForm.ruleName = this.metricRuleOpt[index].label;
+        ruleParams = JSON.parse(this.metricRuleOpt[index].params);
+      }
+      if (index > -1) {
+        this.addForm.ruleScript = this.metricRuleOpt[index].script;
+        this.addForm.ruleName = this.metricRuleOpt[index].label;
+        ruleParams = JSON.parse(this.metricRuleOpt[index].params);
+      }
+      this.initParamsMap(ruleParams);
+    },
+    initParamsMap(ruleParams) {
+      debugger
+      this.paramsMap = {};
+      this.paramsType = {};
+      const length = ruleParams.length;
+      for (let i = 0; i < length; i++) {
+        this.$set(this.paramsMap, ruleParams[i].ParamsTempletName, "");
+      }
+      for (let i = 0; i < length; i++) {
+        this.paramsType = ruleParams[i].ParamsTempletType;
+      }
+      this.$set(this.addForm, "paramsMap", this.paramsMap);
+    },
+    getMetricRuleOpt() {
+      server.getMetricsRule().then(res => {
+        const data = res.metricsData;
+        this.metricRuleOpt = data.map(item => {
+          return {
+            value: item.ruleId,
+            label: item.name,
+            script: item.scriptTemplet,
+            params: item.paramsTemplet
+          };
+        });
+      }); //
+    },
+
+    // 标签实现
+    //取消
+    listClosed() {
+      this.listvisible = false;
+    },
+    // 确定
+    listOpen() {
+      this.listData.forEach(e => {
+        if (e.ischoose) {
+          this.dynamicTags.push(`${e.text}`);
+        }
+      });
+      this.dynamicTags = [...new Set(this.dynamicTags)];
+      this.listvisible = false;
+    },
+    // 显示数据
+    showTagList() {
+      server.tagList().then(res => {
+        this.listData = [];
+        this.listvisible = true;
+        res.forEach(e => {
+          this.listData.push({ text: Object.values(e)[0], ischoose: false });
+        });
+      });
+    },
+    tagItem_click(item, index) {
+      debugger
+      console.log(item.ischoose)
+      this.listData.splice(index, 1, {
+        text: item.text,
+        ischoose: !item.ischoose
+      });
+      // item.ischoose=!item.ischoosrue
+    },
+    handleClose(tag) {
+      this.dynamicTags.splice(this.dynamicTags.indexOf(tag), 1);
+    },
+    showInput() {
+      this.inputVisible = true;
+      this.$nextTick(_ => {
+        this.$refs.saveTagInput.$refs.input.focus();
+      });
+    },
+    handleInputConfirm() {
+      let inputValue = this.form.inputValue;
+      if (inputValue) {
+        this.dynamicTags.push(inputValue);
+      }
+      this.dynamicTags = [...new Set(this.dynamicTags)];
+      this.inputVisible = false;
+      this.form.inputValue = "";
+    },
+
+    // --------------------
+    // 原始change
+    stepChange(type) {
+      if (type == 0) {
+        this.stepW = true;
+        this.mystatu1 = false;
+        this.mystatu2 = false;
+        this.keepBt = true;
+      } else {
+        this.mystatu1 = true;
+        this.stepW = false;
+        this.keepBt = false;
+      }
+    },
+    // 聚合change
+    stepTchange(type) {
+      if (type == 0) {
+        this.mystatu1 = false;
+        this.mystatu2 = false;
+        this.stepW = true;
+        this.keepBt = true;
+      } else {
+        this.mystatu2 = true;
+        this.stepW = false;
+        this.keepBt = false;
+      }
+    },
+
+    // 上一步
+    preTip(form, formY, addForm) {
+      this.flag = true;
+      if (this.active-- < 0) this.active = 0;
+      if (form.calcType == 0 && this.active == 0) {
+        this.mystatu1 = true;
+        this.$refs.stepOne.style.display = "block";
+        this.$refs.stepTwo.style.display = "none";
+        this.$refs.stepTwos.style.display = "none";
+        this.$refs.stepThree.style.display = "none";
+      }
+
+      if (form.calcType == 1 && this.active == 0) {
+        this.mystatu2 = true;
+        this.$refs.stepOne.style.display = "block";
+        this.$refs.stepTwo.style.display = "none";
+        this.$refs.stepTwos.style.display = "none";
+        this.$refs.stepThree.style.display = "none";
+      }
+      // 3-2-0
+      if (formY.category == 1 && this.active == 1 && this.myStep == 1) {
+        this.$refs.stepOne.style.display = "none";
+        this.$refs.stepTwo.style.display = "block";
+        this.$refs.stepTwos.style.display = "none";
+        this.$refs.stepThree.style.display = "none";
+      }
+      // 告警 3-2-1
+      if (
+        addForm.category == 1 &&
+        form.calcType == 1 &&
+        this.active == 1 &&
+        this.myStep == 1
+      ) {
+        this.$refs.stepOne.style.display = "none";
+        this.$refs.stepTwo.style.display = "none";
+        this.$refs.stepTwos.style.display = "block";
+        this.$refs.stepThree.style.display = "none";
+      }
+      if (
+        addForm.category == 1 &&
+        form.calcType == 1 &&
+        this.active == 1 &&
+        this.myStep == 2
+      ) {
+        this.$refs.stepOne.style.display = "none";
+        this.$refs.stepTwo.style.display = "none";
+        this.$refs.stepTwos.style.display = "block";
+        this.$refs.stepThree.style.display = "none";
+      }
+      // 告警 3-2-0
+      if (
+        form.calcType == 0 &&
+        formY.category == 1 &&
+        this.active == 1 &&
+        this.myStep == 1
+      ) {
+        this.$refs.stepOne.style.display = "none";
+        this.$refs.stepTwo.style.display = "block";
+        this.$refs.stepTwos.style.display = "none";
+        this.$refs.stepThree.style.display = "none";
+      }
+      if (
+        form.calcType == 0 &&
+        formY.category == 1 &&
+        this.active == 1 &&
+        this.myStep == 2
+      ) {
+        this.$refs.stepOne.style.display = "none";
+        this.$refs.stepTwo.style.display = "block";
+        this.$refs.stepTwos.style.display = "none";
+        this.$refs.stepThree.style.display = "none";
+      }
+    },
+
+    next(form, formY, addForm) {
+      //聚合规则脚本数据
+      // 基础
+      if (this.active++ > 1) this.active == 2;
+      if (this.active == 1) {
+        this.$refs.form.validate(valid => {
+          if (this.dynamicTags.length <= 0) {
+            this.showtagName = true;
+            this.active = 0;
+            return true;
+          }
+          if (!valid) {
+            this.$message({
+              showClose: true,
+              message: "不允许提交空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.active = 0;
+            return true;
+          } else {
+            this.flag = false;
+            return false;
+          }
+        });
+      }
+      //原始
+      if (this.active == 2 && this.form.calcType == 0) {
+        this.$refs.formY.validate(valid => {
+          if (!valid) {
+            this.$message({
+              showClose: true,
+              message: "不允许提交空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.active = 1;
+            return true;
+          } else {
+            return false;
+          }
+        });
+      }
+      // 聚合
+      if (this.active == 2 && this.form.calcType == 1) {
+        this.$refs.addForm.validate(valid => {
+          if (!valid) {
+            this.$message({
+              showClose: true,
+              message: "不允许提交空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.active = 1;
+            return true;
+          } else {
+            return false;
+          }
+        });
+      }
+
+      this.getMetricRuleOpt();
+      if (this.updateType === "update") {
+        if (
+          form.calcType == 0 &&
+          this.formY.category == 0 &&
+          this.active == 1
+        ) {
+          this.mystatu1 = false;
+          this.mystatu2 = false;
+          this.stepW = true;
+          this.keepBt = true;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "block";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (
+          form.calcType == 0 &&
+          this.active == 1 &&
+          this.formY.category == 1
+        ) {
+          this.mystatu1 = true;
+          this.mystatu2 = true;
+          this.stepW = true;
+          this.keepBt = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "block";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (
+          form.calcType == 1 &&
+          this.addForm.category == 0 &&
+          this.active == 1
+        ) {
+          this.mystatu1 = false;
+          this.mystatu2 = false;
+          this.stepW = true;
+          this.keepBt = true;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "block";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (
+          form.calcType == 1 &&
+          this.addForm.category == 1 &&
+          this.active == 1
+        ) {
+          this.mystatu1 = true;
+          this.mystatu2 = true;
+          this.stepW = true;
+          this.keepBt = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "block";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (this.active == 2 && formY.category == 1) {
+          this.myStep = 1;
+          this.stepW = false;
+          this.keepBt = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        } else if (this.active == 2 && formY.category == 0) {
+          this.mystatu1 = false;
+          this.stepW = false;
+          this.keepBt = true;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        }
+        if (this.active == 2 && addForm.category == 1) {
+          this.myStep = 2;
+          this.stepW = false;
+          this.keepBt = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+          // console.log(this.myStep)
+        } else if (this.active == 2 && addForm.category == 0) {
+          this.mystatu2 = false;
+          this.stepW = false;
+          this.keepBt = true;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        }
+      } else {
+        //2-1---------------------------------------------
+        if (form.calcType == 0 && this.active == 1 &&this.form.category==0) {
+          this.mystatu1 = false;
+          this.mystatu2 = false;
+          this.stepW = true;
+          this.keepBt = true;
+          this.formY.category = 0;
+          // if (this.paramsStatu == false) {
+          //   this.formY.category = 1;
+          //   this.mystatu2 = true;
+          //   this.keepBt = false;
+          // }
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "block";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (form.calcType == 1 && this.active == 1 &&this.addForm.category==0) {
+          this.mystatu1 = false;
+          this.mystatu2 = false;
+          this.keepBt = true;
+          // if (this.paramsStatu == false) {
+          //   this.mystatu2 = true;
+          //   this.keepBt = false;
+          // }
+          this.stepW = true;
+
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "block";
+          this.$refs.stepThree.style.display = "none";
+        }
+        if (this.active == 2 && formY.category == 1) {
+          this.myStep = 1;
+          this.stepW = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        } else if (this.active == 2 && formY.category == 0) {
+          this.mystatu1 = false;
+          this.stepW = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        }
+        if (this.active == 2 && addForm.category == 1) {
+          this.myStep = 2;
+          this.stepW = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        } else if (this.active == 2 && addForm.category == 0) {
+          this.mystatu2 = false;
+          this.stepW = false;
+          this.$refs.stepOne.style.display = "none";
+          this.$refs.stepTwo.style.display = "none";
+          this.$refs.stepTwos.style.display = "none";
+          this.$refs.stepThree.style.display = "block";
+        }
+      }
+    },
+
+    //-----------------------------正常告警传个后台的
+    createNormalStrategyObj(triggerObj) {
+      let normalStrategyObj = _.cloneDeep(triggerObj);
+      normalStrategyObj = _.omit(normalStrategyObj, "ciid");
+      normalStrategyObj.ciid = "";
+      normalStrategyObj = JSON.parse(JSON.stringify(normalStrategyObj));
+      const startTime = new Date(normalStrategyObj.startTime);
+      const endTime = new Date(normalStrategyObj.endTime);
+      normalStrategyObj["startTime"] = parseInt(startTime.getTime() / 1000);
+      normalStrategyObj["endTime"] = parseInt(endTime.getTime() / 1000);
+      normalStrategyObj["thresholds"] = this.tableToObj(
+        normalStrategyObj["thresholds"]
+      );
+
+      return normalStrategyObj;
+    },
+    parseNormalStrategyObj(normalStrategyObj) {
+      normalStrategyObj = JSON.parse(JSON.stringify(normalStrategyObj));
+      const startTime = new Date(Number(normalStrategyObj["startTime"]) * 1000);
+      const endTime = new Date(Number(normalStrategyObj["endTime"]) * 1000);
+      const newNormalStrategyObj = {};
+      _.assign(newNormalStrategyObj, normalStrategyObj, {
+        ciid: []
+      });
+      if (
+        Number(normalStrategyObj["endTime"]) * 1000 == 0 &&
+        Number(normalStrategyObj["endTime"]) * 1000 == 0
+      ) {
+        normalStrategyObj["startTime"] = "";
+        normalStrategyObj["endTime"] = "";
+      } else {
+        var array = [];
+        array.push(startTime);
+        array.push(endTime);
+        newNormalStrategyObj.triggerTime = array;
+      }
+      newNormalStrategyObj.thresholds = this.objToTable(
+        normalStrategyObj.thresholds
+      );
+      return newNormalStrategyObj;
+    },
+
+    //添加告警的时间
+    createExcludeStrategyObj(triggerObj) {
+      let excludeStrategyObj = _.cloneDeep(triggerObj);
+      const startTime = new Date(excludeStrategyObj.startTime);
+      const endTime = new Date(excludeStrategyObj.endTime);
+      excludeStrategyObj.startTime = parseInt(startTime.getTime() / 1000);
+      excludeStrategyObj.endTime = parseInt(endTime.getTime() / 1000);
+      excludeStrategyObj.ciid = excludeStrategyObj.ciid.join(",");
+      excludeStrategyObj = JSON.parse(JSON.stringify(excludeStrategyObj));
+      excludeStrategyObj["thresholds"] = this.tableToObj(
+        excludeStrategyObj["thresholds"]
+      );
+      return excludeStrategyObj;
+    },
+    parseExcludeStrategyObj(excludeStrategyObj) {
+      const newExcludeStrategyObj = JSON.parse(
+        JSON.stringify(excludeStrategyObj)
+      );
+      const startTime = new Date(
+        Number(newExcludeStrategyObj["startTime"]) * 1000
+      );
+      const endTime = new Date(Number(newExcludeStrategyObj["endTime"]) * 1000);
+      if (
+        Number(newExcludeStrategyObj["endTime"]) * 1000 == 0 &&
+        Number(newExcludeStrategyObj["endTime"]) * 1000 == 0
+      ) {
+        newExcludeStrategyObj["startTime"] = "";
+        newExcludeStrategyObj["endTime"] = "";
+      } else {
+        var array = [];
+        array.push(startTime);
+        array.push(endTime);
+        newExcludeStrategyObj.triggerTime = array;
+      }
+      const ciid = newExcludeStrategyObj.ciid;
+      newExcludeStrategyObj.ciid = _.compact(_.split(ciid, ","));
+      newExcludeStrategyObj.thresholds = this.objToTable(
+        newExcludeStrategyObj.thresholds
+      );
+
+      return newExcludeStrategyObj;
+    },
+
+    //+的方法
+    //首先填写默认才可以点击
+    Choice(form) {
+      if (this.clickIndex = "list_0") {
+ debugger
+        this.$refs.triggerObj.validate(valid => {
+          if (!valid) {
+            this.$message({
+              showClose: true,
+              message: "请填写完当前弹框信息,再添加策略！！",
+              type: "error"
+            });
+            return true;
+          } else {
+            const obj = this.createExcludeStrategyObj(this.triggerObj2);
+            this.excludeStrategy.push(obj);
+            this.excludeStrategyCount++;
+            this.flag = false;
+            return false;
+          }
+        });
+      } else {
+        this.$message({
+          showClose: true,
+          message: "不允许提交空白表单!请完整填写弹框信息！！",
+          type: "error"
+        });
+        return true;
+      }
+    },
+
+    addExcludeTrategy() {
+      this.Choice();
+    },
+    //—的方法
+    reduceExcludeTrategy() {
+      if (this.excludeStrategy.length > 0) {
+        this.excludeStrategy.pop();
+        if (
+          "list_" + this.excludeStrategyCount === this.clickIndex &&
+          this.excludeStrategyCount > 0
+        ) {
+          this.clickIndex = "list_" + (this.excludeStrategyCount - 1);
+          this.selectTrategy(this.excludeStrategyCount - 1);
+        }
+        this.excludeStrategyCount--;
+      }
+    },
+    //判断如果为list_>0都是为新增的策略，并且回显;小于0位默认
+    selectTrategy(currentIndex) {
+      this.$nextTick(function() {
+        this.clickIndex = "list_" + currentIndex;
+        let currentStrategyObj = {};
+        if (currentIndex > 0) {
+          currentStrategyObj = this.excludeStrategy[currentIndex - 1];
+          console.log(this.excludeStrategy[currentIndex - 1].ciid)
+          this.triggerObj = this.parseExcludeStrategyObj(currentStrategyObj);
+        } else {
+          currentStrategyObj = this.normalStrategy;
+          this.triggerObj = this.parseNormalStrategyObj(currentStrategyObj);
+        }
+      });
+    },
+
+
+    // 初始页面
+    initData() {
+      this.copyForm = _.cloneDeep(this.form);
+      this.copyTrigger = _.cloneDeep(this.triggerObj);
+      this.getMetricTypeOpt();
+      this.getMetricDimensionOpt();
+      this.getComparatorInfoOpt();
+    },
+    initTrigger() {
+      this.triggerObj = _.cloneDeep(this.copyTrigger);
+      this.normalStrategy = this.createNormalStrategyObj(this.copyTrigger);
+      this.excludeStrategy = [];
+      this.excludeStrategyCount = 0;
+    },
+
+    getMetricTypeOpt() {
+      server.getMetricsType().then(
+        res => {
+          const data = res.metricsData;
+          this.metricTypeOpt = _.uniqBy(
+            data.map(item => {
+              return {
+                value: item.alias,
+                label: item.alias
+              };
+            }),
+            "value"
+          );
+        },
+        error => {
+          console.error("请求异常！" + error);
+        }
+      );
+    },
+    // end----------------------------
+    getMetricDimensionOpt() {
+      server.getMetricsDimension().then(
+        res => {
+          const data = res.metricsData;
+          this.metricDimensionOpt = data.map(item => {
+            return {
+              value: item.alias,
+              label: item.alias
+            };
+          });
+        },
+        error => {
+          console.error("请求异常！" + error);
+        }
+      );
+    },
+    getComparatorInfoOpt() {
+      server.getComparatorInfo().then(
+        res => {
+          const data = res.metricsData;
+          this.comparatorTypeOpt = _.uniqBy(
+            data.map(item => {
+              return {
+                value: item.alias,
+                label: item.alias
+              };
+            }),
+            "value"
+          );
+          var obj = {};
+          data.forEach(item => {
+            obj[item.alias] = item.content;
+          });
+          this.comparatorContentMap = obj;
+        },
+        error => {
+          console.error("请求异常！" + error);
+        }
+      );
+    },
+    getMetrics() {
+      server.getMetricsDef().then(
+        res => {
+          this.metricsDefData = res.metricsData;
+          this.codeOptions = _.uniqBy(
+            this.metricsDefData.map(item => {
+              return {
+                value: item.code,
+                label: item.code
+              };
+            }),
+            "value"
+          );
+        },
+        error => {
+          console.error("请求异常！" + error);
+        }
+      );
+    },
+
+    //------------------------------------ end
+
+    //-------------------------------------------取消的方法
+
+    dialogClosed() {
+      //步骤条
+      this.showtagName = false;
+      this.dynamicTags = [];
+      this.form.tags = "";
+      this.form.inputValue = "";
+      if ((this.dynamicTags.length = 0)) {
+        this.showtagName = false;
+      }
+      this.active = 0;
+      this.mystatu1 = true;
+      this.$refs.stepOne.style.display = "block";
+      this.$refs.stepTwo.style.display = "none";
+      this.$refs.stepTwos.style.display = "none";
+      this.$refs.stepThree.style.display = "none";
+      //聚合
+      this.addForm.frequency = "";
+      this.addForm.resourceType = [], //所属资源
+      this.addForm.ruleName = "",
+      this.paramsType= this.paramsType
+      this.addForm.paramsMap={}
+      this.addForm.ruleScript = "",
+      this.addForm.sourceMetric = [],
+        // 基本
+      this.form.labels = 0;
+      this.dynamicTags = [];
+      this.form.category = 0;
+      this.form.ruleScript = "";
+      this.form.resourceType = [];
+
+      // 原始
+      this.formY.frequency = "";
+      this.flag = true;
+      this.triggerTime = [];
+
+      this.$emit("closedEvent", false);
+      this.$refs.form.resetFields();
+      this.$refs.formY.resetFields();
+      this.$refs.triggerObj.resetFields();
+      this.excludeStrategy = [];
+      this.normalStrategy = {};
+      this.comparatorMsg = "";
+      this.startTime = "";
+      this.endTime = "";
+      this.ciid = [];
+      this.comparatorType = "";
+    },
+
+    //------------------------------------------------保存
+    postMetricsDef(form, formY, addForm) {
+      //原始
+      this.disabled = true;
+      if (this.form.calcType == 0&&this.formY.category == 0) {
+        this.$refs.formY.validate(valid => {
+          if (valid) {
+            var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+            if (reg.test(this.form.name)) {
+              this.$message({
+                showClose: true,
+                message: "指标名中不能含有文字!",
+                type: "error"
+              });
+            } else {
+              //原始
+              var params = [];
+              params = {
+                name: this.form.name,
+                code: this.form.code,
+                alias: this.form.alias, // 规范
+                alignUnit:0, // 时间对齐
+                calcType: 0,
+                category: 0,
+                // 原始
+                code: this.form.code,
+                // 编码
+                collectType: this.formY.collectType,
+                createTime: 0,
+                dataType: 0,
+                description: this.form.description,
+                //描述
+                founder: getUserName(),
+                //创建人参数
+                frequency: this.formY.frequency,
+                // 采集参数
+                metricDimension: this.form.metricDimension,
+                //维度
+                metricId: "",
+                metricType: this.form.metricType,
+                // 类型
+                name: this.form.name, //名字
+                resourceType: this.formY.resourceType.join("."),
+                //所属资源
+                ruleParams: "",
+                ruleName: "",
+                ruleScript: "",
+                sourceMetric: [],
+                status: 0,
+                tags: this.dynamicTags.join(","),
+                trigger: {
+                  excludeStrategy: this.excludeStrategy,
+                  normalStrategy: this.normalStrategy
+                },
+                unit: this.form.unit
+              };
+            }
+            server.postMetricsDef(params).then(res => {
+              if (res.errorMsg == "请求成功") {
+                this.$message({
+                  showClose: true,
+                  message: "新增成功！",
+                  type: "success"
+                });
+                this.$emit("closedEvent", false);
+                this.$emit("send");
+                this.$refs.form.resetFields();
+                this.$refs.formY.resetFields();
+                this.flag = true;
+                this.dialogClosed();
+                this.value = "";
+                this.triggerObj.triggerTime = "";
+                this.triggerObj.comparatorType = "";
+                this.triggerObj.thresholds = [
+                  {
+                    level: "严重",
+                    value: "critical",
+                    from: "",
+                    to: ""
+                  },
+                  {
+                    level: "主要",
+                    value: "major",
+                    from: "",
+                    to: ""
+                  },
+                  {
+                    level: "一般",
+                    value: "normal",
+                    from: "",
+                    to: ""
+                  },
+                  {
+                    level: "恢复",
+                    value: "reset",
+                    from: "",
+                    to: ""
+                  }
+                ];
+                this.disabled = false;
+              } else {
+                this.disabled = false;
+              }
+            });
+          } else {
+            this.$message({
+              showClose: true,
+              message: "不允许保存空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.disabled = false;
+            return false;
+          }
+          error => {
+            console.error("请求异常！" + error);
+            this.$message({
+              showClose: true,
+              message: "新增失败！",
+              type: "error"
+            });
+          };
+        });
+      }
+      // 聚合
+      if (this.form.calcType == 1&&this.formY.category == 0) {
+        this.disabled = true;
+        this.$refs.addForm.validate(valid => {
+          if (valid) {
+            var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+            if (reg.test(this.form.name)) {
+              this.$message({
+                showClose: true,
+                message: "指标名中不能含有文字!",
+                type: "error"
+              });
+            } else {
+              //聚合
+              var params = [];
+              params = {
+                name: this.form.name,
+                code: this.form.code,
+                alias: this.form.alias, // 规范
+                alignUnit: this.addForm.alignUnit, // 时间对齐
+                calcType: 1,
+                category: 0,
+                // 聚合
+                code: this.form.code,
+                // 编码
+                collectType: [],
+                createTime: 0,
+                dataType: 0,
+                description: this.form.description,
+                //描述
+                founder: getUserName(),
+                //创建人参数
+                frequency: this.addForm.frequency,
+                // 采集参数
+                metricDimension: this.form.metricDimension,
+                //维度
+                metricId: "",
+                metricType: this.form.metricType,
+                // 类型
+                name: this.form.name, //名字
+                resourceType: this.addForm.resourceType.join("."),
+                // //所属资源
+                ruleParams: JSON.stringify(this.paramsMap),
+                ruleName: this.addForm.ruleName,
+                ruleScript: this.addForm.ruleScript,
+                sourceMetric: this.addForm.sourceMetric,
+                status: 0,
+                tags: this.dynamicTags.join(),
+                trigger: {
+                  excludeStrategy: this.excludeStrategy,
+                  normalStrategy: this.normalStrategy
+                },
+                unit: this.form.unit
+              };
+              server.postMetricsDef(params).then(res => {
+                if (res.errorMsg == "请求成功") {
+                  this.$message({
+                    showClose: true,
+                    message: "新增成功！",
+                    type: "success"
+                  });
+                  this.disabled = false;
+                  this.$emit("closedEvent", false);
+                  this.$emit("send");
+                  this.$refs.form.resetFields();
+                  this.$refs.addForm.resetFields();
+                  this.flag = true;
+                  this.dialogClosed();
+                  this.addForm.ruleName = "";
+                  this.addForm.ruleScript = "";
+                  this.addForm.ruleParams = "";
+                  this.paramsType= this.paramsType
+                  this.addForm.paramsMap={}
+                  this.triggerObj.triggerTime = "";
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                } else {
+                  this.disabled = false;
+                }
+              });
+            }
+          } else {
+            this.$message({
+              showClose: true,
+              message: "不允许保存空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.disabled = false;
+            return false;
+          }
+          error => {
+            console.error("请求异常！" + error);
+            this.$message({
+              showClose: true,
+              message: "新增失败！",
+              type: "error"
+            });
+          };
+        });
+      } 
+    },
+    //------------------------------------------------确定
+    postMetrics(triggerObj) {
+      debugger
+       this.form.founder = userfounder;
+       this.disabled = true;
+               
+   console.log(this.excludeStrategyCount)
+      // 原始告警
+      if (this.form.calcType == 0 && this.formY.category == 1&&this.excludeStrategyCount==0) {
+        this.$refs.triggerObj.validate(valid => {
+          if (valid) {
+            if (this.flag) {
+              return false;
+            } else {
+              //原始
+              var params = [];
+              params = {
+                alias: this.form.alias, // 规范
+                alignUnit:0, // 时间对齐
+                calcType: 0,
+                category: this.formY.category,
+                // 原始
+                code: this.form.code,
+                // 编码
+                collectType: this.formY.collectType,
+                createTime: 0,
+                dataType: 0,
+                description: this.form.description,
+                //描述
+                founder: getUserName(),
+                //创建人参数
+                frequency: this.formY.frequency,
+                // 采集参数
+                metricDimension: this.form.metricDimension,
+                //维度
+                metricId: "",
+                metricType: this.form.metricType,
+                // 类型
+                name: this.form.name, //名字
+                resourceType: this.formY.resourceType.join("."),
+                //所属资源
+                ruleParams: "",
+                ruleName: "",
+                ruleScript: "",
+                sourceMetric: [],
+                status: 0,
+                tags: this.dynamicTags.join(),
+                trigger: {
+                  excludeStrategy: this.excludeStrategy,
+                  normalStrategy: this.normalStrategy
+                },
+                unit: this.form.unit
+              };
+              server.postMetricsDef(params).then(res => {
+                if (res.errorMsg == "请求成功") {
+                  this.$message({
+                    showClose: true,
+                    message: "新增成功！",
+                    type: "success"
+                  });
+                  this.selectTrategy(0);
+                  this.$emit("closedEvent", false);
+                  this.$emit("send");
+                  this.$refs.form.resetFields();
+                  this.$refs.formY.resetFields();
+                  this.$refs.triggerObj.resetFields();
+                  this.form.ruleScript = "";
+                  this.label = "";
+                  this.formY.ruleName = "";
+                  this.formY.ruleScript = "";
+                  this.formY.ruleParams = "";
+                  this.flag = true;
+                  this.dialogClosed();
+                  this.listOpen();
+                  this.disabled = false;
+                  this.triggerObj.triggerTime = "";
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                } else {
+                  this.disabled = false;
+                }
+              });
+            }
+            } else {
+              this.$message({
+                showClose: true,
+                message: "不允许提交空白表单!请完整填写弹框信息！！",
+                type: "error"
+              });
+              this.disabled = false;
+              return false;
+            }
+            error => {
+              console.error("请求异常！" + error);
+              this.$message({
+                showClose: true,
+                message: "新增失败！",
+                type: "error"
+              });
+            };
+          });
+      }
+    
+
+      // 特殊告警校验
+      // debugger
+      // var a="",b="",c=""
+      // this.excludeStrategy.forEach((item,index)=> {
+      //        a=item.comparatorMsg
+      //        b=item.comparatorType
+      //        c=item.triggerTime
+      //       console.log(a,b,c)
+      //     });
+        if (this.form.calcType == 0 && this.formY.category == 1&&this.excludeStrategyCount>0) {
+          this.$refs.triggerObj.validate(valid => {
+           if (valid) {
+            if (this.flag) {
+              return false;
+            } else {
+              //原始
+              var params = [];
+              params = {
+                alias: this.form.alias, // 规范
+                alignUnit:0, // 时间对齐
+                calcType: 0,
+                category: this.formY.category,
+                // 原始
+                code: this.form.code,
+                // 编码
+                collectType: this.formY.collectType,
+                createTime: 0,
+                dataType: 0,
+                description: this.form.description,
+                //描述
+                founder: getUserName(),
+                //创建人参数
+                frequency: this.formY.frequency,
+                // 采集参数
+                metricDimension: this.form.metricDimension,
+                //维度
+                metricId: "",
+                metricType: this.form.metricType,
+                // 类型
+                name: this.form.name, //名字
+                resourceType: this.formY.resourceType.join("."),
+                //所属资源
+                ruleParams: "",
+                ruleName: "",
+                ruleScript: "",
+                sourceMetric: [],
+                status: 0,
+                tags: this.dynamicTags.join(),
+                trigger: {
+                  excludeStrategy: this.excludeStrategy,
+                  normalStrategy: this.normalStrategy
+                },
+                unit: this.form.unit
+              };
+              server.postMetricsDef(params).then(res => {
+                if (res.errorMsg == "请求成功") {
+                  this.$message({
+                    showClose: true,
+                    message: "新增成功！",
+                    type: "success"
+                  });
+                  this.selectTrategy(0);
+                  this.$emit("closedEvent", false);
+                  this.$emit("send");
+                  this.$refs.form.resetFields();
+                  this.$refs.formY.resetFields();
+                  this.$refs.triggerObj.resetFields();
+                  this.form.ruleScript = "";
+                  this.label = "";
+                  this.formY.ruleName = "";
+                  this.formY.ruleScript = "";
+                  this.formY.ruleParams = "";
+                  this.flag = true;
+                  this.dialogClosed();
+                  this.listOpen();
+                  this.disabled = false;
+                  this.triggerObj.triggerTime = "";
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                } else {
+                  this.disabled = false;
+                }
+              });
+            }
+            } else {
+              this.$message({
+                showClose: true,
+                message: "不允许提交空白表单!请完整填写弹框信息！！",
+                type: "error"
+              });
+              this.disabled = false;
+              return false;
+            }
+            error => {
+              console.error("请求异常！" + error);
+              this.$message({
+                showClose: true,
+                message: "新增失败！",
+                type: "error"
+              });
+            };
+          });     
+          }
+      // 聚合告警
+      if (this.form.calcType == 1 && this.addForm.category == 1) {
+        this.disabled = true;
+        this.$refs.triggerObj.validate(valid => {
+          if (valid) {
+            if (this.flag) {
+              return false;
+            } else {
+              var params = [];
+              params = {
+                alias: this.form.alias, // 规范
+                alignUnit: this.addForm.alignUnit, // 时间对齐
+                calcType: 1,
+                category: this.addForm.category,
+                // 原始
+                code: this.form.code,
+                // 编码
+                collectType: [],
+                createTime: 0,
+                dataType: 0,
+                description: this.form.description,
+                //描述
+                founder: getUserName(),
+                //创建人参数
+                frequency: this.addForm.frequency,
+                // 采集参数
+                metricDimension: this.form.metricDimension,
+                //维度
+                metricId: "",
+                metricType: this.form.metricType,
+                // 类型
+                name: this.form.name, //名字
+                resourceType: this.addForm.resourceType.join("."),
+                //所属资源
+                ruleParams: JSON.stringify(this.paramsMap),
+                ruleName: this.addForm.ruleName,
+                ruleScript: this.addForm.ruleScript,
+                sourceMetric: this.addForm.sourceMetric,
+                status: 0,
+                tags: this.dynamicTags.join(),
+                trigger: {
+                  excludeStrategy: this.excludeStrategy,
+                  normalStrategy: this.normalStrategy
+                },
+                unit: this.form.unit
+              };
+              server.postMetricsDef(params).then(res => {
+                if (res.errorMsg == "请求成功") {
+                  this.$message({
+                    showClose: true,
+                    message: "新增成功！",
+                    type: "success"
+                  });
+                  this.selectTrategy(0);
+                  this.$emit("closedEvent", false);
+                  this.$emit("send");
+                  this.$refs.form.resetFields();
+                  this.$refs.addForm.resetFields();
+                  this.$refs.triggerObj.resetFields();
+                  this.form.ruleScript = "";
+                  this.label = "";
+                  this.addForm.ruleName = "";
+                  this.addForm.ruleScript = "";
+                  this.addForm.ruleParams = "";
+                  this.dialogClosed();
+                  this.listOpen();
+                  this.disabled = false;
+                  this.triggerObj.triggerTime = "";
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                } else {
+                  this.disabled = false;
+                }
+              });
+            }
+          } else {
+            this.$message({
+              showClose: true,
+              message: "不允许提交空白表单!请完整填写弹框信息！！",
+              type: "error"
+            });
+            this.disabled = false;
+            return false;
+          }
+          error => {
+            console.error("请求异常！" + error);
+            this.$message({
+              showClose: true,
+              message: "新增失败！",
+              type: "error"
+            });
+          };
+        });
+      }
+
+
+    },
+    //----------------------------------------------保存修改
+    putMetricsDef(form, formY, addForm) {
+      //修改原始
+      this.form.founder = userfounder;
+      if (this.updateType === "update") {
+        if (this.form.calcType == 0&&this.formY.category == 0) {
+          this.$refs.formY.validate(valid => {
+            if (valid) {
+              var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+              if (reg.test(this.form.name)) {
+                this.$message({
+                  showClose: true,
+                  message: "指标名中不能含有文字!",
+                  type: "error"
+                });
+              } else {
+                //原始
+                var params = [];
+                params = {
+                  name: this.form.name,
+                  code: this.form.code,
+                  alias: this.form.alias, // 规范
+                  alignUnit:0, // 时间对齐
+                  calcType: 0,
+                  category: this.formY.category,
+                  // 原始
+                  code: this.form.code,
+                  // 编码
+                  collectType: this.formY.collectType,
+                  createTime: 0,
+                  dataType: 0,
+                  description: this.form.description,
+                  //描述
+                  founder: getUserName(),
+                  //创建人参数
+                  frequency: this.formY.frequency,
+                  // 采集参数
+                  metricDimension: this.form.metricDimension,
+                  //维度
+                  metricId: this.metricId,
+                  metricType: this.form.metricType,
+                  // 类型
+                  name: this.form.name, //名字
+                  resourceType: this.formY.resourceType.join("."),
+                  //所属资源
+                  ruleParams: "",
+                  ruleName: "",
+                  ruleScript: "",
+                  sourceMetric: [],
+                  status: 0,
+                  tags: this.dynamicTags.join(),
+                  trigger: {
+                    excludeStrategy: this.excludeStrategy,
+                    normalStrategy: this.normalStrategy
+                  },
+                  unit: this.form.unit
+                };
+                server.putMetricsDef(params).then(res => {
+                  if (res.errorMsg == "请求成功") {
+                    this.$message({
+                      showClose: true,
+                      message: "修改成功！",
+                      type: "success"
+                    });
+                  }
+                  this.$emit("closedEvent", false);
+                  this.$refs.form.resetFields();
+                  this.$refs.formY.resetFields();
+                  this.form.ruleScript = "";
+                  this.label = "";
+                  this.paramsType= this.paramsType
+                  this.addForm.paramsMap={}
+                  this.$refs.triggerObj.resetFields();
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                });
+              }
+            } else {
+              this.$message({
+                showClose: true,
+                message: "不允许提交空白表单!请完整填写弹框信息！！",
+                type: "error"
+              });
+              return false;
+            }
+            error => {
+              console.error("请求异常！" + error);
+              this.$message({
+                showClose: true,
+                message: "修改失败！",
+                type: "error"
+              });
+            };
+          });
+        }
+      }
+      //修改聚合
+      if (this.updateType === "update") {
+        if (this.form.calcType == 1&&this.addForm.category == 0) {
+          this.$refs.addForm.validate(valid => {
+            if(valid){
+              var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+              if (reg.test(this.form.name)) {
+                this.$message({
+                  showClose: true,
+                  message: "指标名中不能含有文字!",
+                  type: "error"
+                });
+              } else {
+                //聚合
+                var params = [];
+                var params = [];
+                params = {
+                  alias: this.form.alias, // 规范
+                  alignUnit: this.addForm.alignUnit, // 时间对齐
+                  calcType: 1,
+                  category: this.addForm.category,
+                  // 聚合
+                  code: this.form.code,
+                  // 编码
+                  collectType: [],
+                  createTime: 0,
+                  dataType: 0,
+                  description: this.form.description,
+                  //描述
+                  founder: getUserName(),
+                  //创建人参数
+                  frequency: this.addForm.frequency,
+                  // 采集参数
+                  metricDimension: this.form.metricDimension,
+                  //维度
+                  metricId: this.metricId,
+                  metricType: this.form.metricType,
+                  // 类型
+                  name: this.form.name, //名字
+                  resourceType: this.addForm.resourceType.join("."),
+                  //所属资源
+                  ruleParams:JSON.stringify(this.addForm.paramsMap),
+                  ruleName: this.addForm.ruleName,
+                  ruleScript: this.addForm.ruleScript,
+                  sourceMetric: this.addForm.sourceMetric,
+                  status: 0,
+                  tags: this.dynamicTags.join(),
+                  trigger: {
+                    excludeStrategy: this.excludeStrategy,
+                    normalStrategy: this.normalStrategy
+                  },
+                  unit: this.form.unit
+                };
+                server.putMetricsDef(params).then(res => {
+                  if (res.errorMsg == "请求成功") {
+                    this.$message({
+                      showClose: true,
+                      message: "修改成功！",
+                      type: "success"
+                    });
+                  }
+                  this.$emit("closedEvent", false);
+                  this.$refs.form.resetFields();
+                  this.$refs.addForm.resetFields();
+                  this.form.ruleScript = "";
+                  this.label = "";
+                  this.addForm.ruleName="",
+                  this.addForm.ruleScript="",
+                  this.paramsType= this.paramsType
+                  this.addForm.paramsMap={}
+                  this.triggerObj.triggerTime=""
+                  this.$refs.triggerObj.resetFields();
+                  this.triggerObj.comparatorType = "";
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                });
+              }
+          }else{
+              this.$message({
+                showClose: true,
+                message: "不允许提交空白表单!请完整填写弹框信息！！",
+                type: "error"
+              });
+              return false;   
+              } error => {
+              console.error("请求异常！" + error);
+              this.$message({
+                showClose: true,
+                message: "修改失败！",
+                type: "error"
+              });
+            };
+          });
+      }
+      }
+    },
+    //---------------------------------------------确定修改
+    putMetrics(form, formY, addForm, triggerObj) {
+      //修改原始告警
+      if (this.updateType === "update") {
+        this.form.founder = userfounder;
+        if (this.form.calcType == 0 && this.formY.category == 1) {
+          this.$refs.triggerObj.validate(valid => {
+            if (valid) {
+              var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+              if (reg.test(this.form.name)) {
+                this.$message({
+                  showClose: true,
+                  message: "指标名中不能含有文字!",
+                  type: "error"
+                });
+              } else {
+                //原始
+                var params = [];
+                params = {
+                  name: this.form.name,
+                  code: this.form.code,
+                  alias: this.form.alias, // 规范
+                  alignUnit:0, // 时间对齐
+                  calcType: 0,
+                  category: this.formY.category,
+                  // 原始
+                  code: this.form.code,
+                  // 编码
+                  collectType: this.formY.collectType,
+                  createTime: 0,
+                  dataType: 0,
+                  description: this.form.description,
+                  //描述
+                  founder: getUserName(),
+                  //创建人参数
+                  frequency: this.formY.frequency,
+                  // 采集参数
+                  metricDimension: this.form.metricDimension,
+                  //维度
+                  metricId: this.metricId,
+                  metricType: this.form.metricType,
+                  // 类型
+                  name: this.form.name, //名字
+                  resourceType: this.formY.resourceType.join("."),
+                  //所属资源
+                  ruleParams: "",
+                  ruleName: "",
+                  ruleScript: "",
+                  sourceMetric: [],
+                  status: 0,
+                  tags: this.dynamicTags.join(),
+                  trigger: {
+                    excludeStrategy: this.excludeStrategy,
+                    normalStrategy: this.normalStrategy
+                  },
+                  unit: this.form.unit
+                };
+                server.putMetricsDef(params).then(res => {
+                  if (res.errorMsg == "请求成功") {
+                    this.$message({
+                      showClose: true,
+                      message: "修改成功！",
+                      type: "success"
+                    });
+                  }
+                  this.$emit("closedEvent", false);
+                  this.$refs.form.resetFields();
+                  this.$refs.formY.resetFields();
+                  this.form.ruleScript = "";
+                  this.dialogClosed();
+                  this.label = "";
+                  this.$refs.triggerObj.resetFields();
+                  this.triggerObj.comparatorType = "";
+                  this.$refs.form.resetFields();
+                  this.$refs.formY.resetFields();
+                  this.$refs.triggerObj.resetFields();
+                  this.triggerObj.thresholds = [
+                    {
+                      level: "严重",
+                      value: "critical",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "主要",
+                      value: "major",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "一般",
+                      value: "normal",
+                      from: "",
+                      to: ""
+                    },
+                    {
+                      level: "恢复",
+                      value: "reset",
+                      from: "",
+                      to: ""
+                    }
+                  ];
+                });
+              }
+            } else {
+              this.$message({
+                showClose: true,
+                message: "不允许提交空白表单!请完整填写弹框信息！！",
+                type: "error"
+              });
+              return false;
+            }
+            error => {
+              console.error("请求异常！" + error);
+              this.$message({
+                showClose: true,
+                message: "修改失败！",
+                type: "error"
+              });
+            };
+          });
+        }
+      }
+      //修改聚合告警
+      if (this.updateType === "update") {
+         this.form.founder = userfounder;
+          if (this.form.calcType == 1 && this.addForm.category == 1) {
+            this.$refs.triggerObj.validate(valid => {
+              if (valid) {
+                var reg = new RegExp("[\\u4E00-\\u9FFF]+", "g");
+                if (reg.test(this.form.name)) {
+                  this.$message({
+                    showClose: true,
+                    message: "指标名中不能含有文字!",
+                    type: "error"
+                  });
+                } else {
+                  //聚合
+                  var params = [];
+                  var params = [];
+                  params = {
+                    name: this.form.name,
+                    code: this.form.code,
+                    alias: this.form.alias, // 规范
+                    alignUnit: this.addForm.alignUnit, // 时间对齐
+                    calcType: 1,
+                    category: this.addForm.category,
+                    // 聚合
+                    code: this.form.code,
+                    // 编码
+                    collectType: [],
+                    createTime: 0,
+                    dataType: 0,
+                    description: this.form.description,
+                    //描述
+                    founder: getUserName(),
+                    //创建人参数
+                    frequency: this.addForm.frequency,
+                    // 采集参数
+                    metricDimension: this.form.metricDimension,
+                    //维度
+                    metricId: this.metricId,
+                    metricType: this.form.metricType,
+                    // 类型
+                    name: this.form.name, //名字
+                    resourceType: this.addForm.resourceType.join("."),
+                    //所属资源
+                    ruleParams: JSON.stringify(this.paramsMap),
+                    ruleName: this.addForm.ruleName,
+                    ruleScript: this.addForm.ruleScript,
+                    sourceMetric: this.addForm.sourceMetric,
+                    status: 0,
+                    tags: this.dynamicTags.join(),
+                    trigger: {
+                      excludeStrategy: this.excludeStrategy,
+                      normalStrategy: this.normalStrategy
+                    },
+                    unit: this.form.unit
+                  };
+                  server.putMetricsDef(params).then(res => {
+                    if (res.errorMsg == "请求成功") {
+                      this.$message({
+                        showClose: true,
+                        message: "修改成功！",
+                        type: "success"
+                      });
+                    }
+                    this.$emit("closedEvent", false);
+                    this.$refs.form.resetFields();
+                    this.$refs.addForm.resetFields();
+                    this.form.ruleScript = "";
+                    this.label = "";
+                    this.paramsType= this.paramsType
+                    this.addForm.paramsMap={}
+                    this.flag = true;
+                    this.dialogClosed();
+                    this.$refs.triggerObj.resetFields();
+                  });
+                }
+              } else {
+                this.$message({
+                  showClose: true,
+                  message: "不允许提交空白表单!请完整填写弹框信息！！",
+                  type: "error"
+                });
+                return false;
+              }
+              error => {
+                console.error("请求异常！" + error);
+                this.$message({
+                  showClose: true,
+                  message: "修改失败！",
+                  type: "error"
+                });
+              };
+            });
+          }
+        
+      }
+    },
+
+
+    // 告警确定修改
+    updateMetrics() {
+      if (this.updateType === "create") {
+        this.postMetrics();
+        this.form.founder = userfounder;
+      } else if (this.updateType === "update") {
+        this.form.founder = userfounder;
+        this.putMetrics();
+      }
+    },
+    //聚合和原始判断是修改还是新增
+    updateMetricsDef() {
+      if (this.updateType === "create") {
+        this.postMetricsDef();
+        this.form.founder = userfounder;
+      } else if (this.updateType === "update") {
+        this.form.founder = userfounder;
+        this.putMetricsDef();
+      }
+    },
+    //指标所属资源类型下拉
+    getCidParam(val) {
+      // const length = val.length;
+      // this.cidParamY =this.formY.resourceType[this.formY.resourceType.length - 1];
+      // this.getCiids();
+      const length = val.length;
+      this.cidParam = val[length - 1];
+      // console.info(this.cidParam)
+      this.getCiids();
+    },
+
+    //  输入源指标下拉选择的值
+    changeSourceMetric(val) {
+      const length = val.length;
+      if (length > 0) {
+        this.addForm.resourceType = this.codeMap[val[length - 1]].split(".");
+        this.cidParam = this.addForm.resourceType[
+          this.addForm.resourceType.length - 1
+        ];
+        this.getCiids();
+      } else {
+        this.addForm.resourceType = [];
+      }
+      this.getCiids();
+    },
+    //下拉请求
+    getCiids() {
+      const params = {
+        model: this.cidParam
+      };
+      if (this.cidParam === undefined) {
+        this.ciids = {};
+        return;
+      }
+      server.getCIIDS(params).then(res => {
+        const data = res.datas[this.cidParam];
+        if (!data) {
+          this.ciids = [];
+          return;
+        }
+        this.ciids = data.map(item => {
+          return {
+            value: item.ciid,
+            label: item.ciname
+          };
+        });
+      });
+    },
+
+    //提交告警table
+    tableToObj(table) {
+      const obj = {};
+      table.map(v => {
+        const { level, value, from, to } = v;
+        this.$set(obj, value, {});
+        this.$set(obj[value], "from", from);
+        this.$set(obj[value], "to", to);
+      });
+      // console.info(obj)
+      return obj;
+    },
+    objToTable(obj) {
+      const table = [
+        {
+          level: "严重",
+          value: "critical",
+          from: obj.critical.from,
+          to: obj.critical.to
+        },
+        {
+          level: "主要",
+          value: "major",
+          from: obj.major.from,
+          to: obj.major.to
+        },
+        {
+          level: "一般",
+          value: "normal",
+          from: obj.normal.from,
+          to: obj.normal.to
+        },
+        {
+          level: "恢复",
+          value: "reset",
+          from: obj.reset.from,
+          to: obj.reset.to
+        }
+      ];
+      return table;
+    },
+    changeComparatorType(newValue) {
+      this.triggerObj.comparatorMsg = this.comparatorContentMap[newValue];
+    }
+  }
+};
+</script>
+
+
+<style rel="stylesheet/scss" lang="scss">
+// 弹窗样式
+.search_btn {
+  background: #42b983;
+  border: 1px solid #42b983;
+  color: #ffffff;
+  font-size: 14px;
+  &:hover {
+    background: rgba(66, 185, 131, 0.8);
+  }
+}
+.details-title-name {
+  margin-bottom: 20px;
+  .sp {
+    display: inline-block;
+    min-height: 28px;
+    color: #42b983;
+
+    span {
+      padding-left: 10px;
+      border-left: 3px solid #42b983;
+    }
+
+    i {
+      padding-left: 10px;
+    }
+  }
+
+  .sBtn {
+    text-align: right;
+    margin: 20px 56px;
+
+    button {
+      padding: 9px 17px;
+    }
+  }
+}
+.stepOne {
+  display: block;
+}
+.stepTwo {
+  display: none;
+}
+.stepTwos {
+  display: none;
+}
+.stepThree {
+  display: none;
+}
+#next {
+  display: inline-block;
+}
+// 标签列表
+.taglist {
+  overflow: hidden;
+  &-item {
+    float: left;
+    // width: 25%;
+    margin-left: 5px;
+    text-align: center;
+  }
+}
+.button_list {
+  background: #c0c4cc;
+  color: #fff;
+  border-radius: 20px;
+  border-color: #fff;
+}
+.button_list_1 {
+  color: #42b983;
+  border-color: rgb(198, 234, 218);
+  background-color: rgb(236, 248, 243);
+}
+.button_list_2 {
+  background: #c0c4cc;
+  color: #fff;
+  border-radius: 20px;
+  border-color: #fff;
+}
+.details-title-name .tages_name .el-form-item__label:before {
+  content: "*";
+  color: #f56c6c;
+  margin-right: 4px;
+}
+.details-title {
+  margin-top: -24px;
+  padding-bottom: 10px;
+}
+.el-tag + .el-tag {
+  margin-left: 10px;
+}
+.button-new-tag {
+  margin-left: 10px;
+  height: 32px;
+  line-height: 30px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.input-new-tag {
+  width: 90px;
+  margin-left: 10px;
+  vertical-align: bottom;
+}
+</style>
+

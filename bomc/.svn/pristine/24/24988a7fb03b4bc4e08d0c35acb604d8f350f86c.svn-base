@@ -1,0 +1,1467 @@
+<template>
+	<div class='container'>
+		<div class="cont">
+			<div class="RightRow">
+				<el-card>
+					<el-form :inline="true" label-position="right" label-width="70px" size="small" :model="queryForm" :rules="queryRules" ref="queryForm">
+						<el-form-item label="任务名称" prop="nameInfo">
+							<el-input v-model="queryForm.nameInfo" placeholder="请输入模板名称" @keyup.enter.native="queryTask('queryForm')"></el-input>
+						</el-form-item>
+						<el-form-item label="任务类型"  prop="taskType"> 
+							<el-select v-model="queryForm.taskType" placeholder="请选择任务类型">
+							<el-option v-for="item in taskDate" :key="item.modelType" :label="item.modelName" :value="item.modelType">
+							</el-option>
+						</el-select>
+						</el-form-item>
+						<el-button size="small" class="search_btn" @click="queryTask('queryForm')" style="margin-left:10px;">查询</el-button>
+						<el-button size="small" class="opt_btn" @click.stop="queryTaskRest('queryForm')">重置</el-button>
+						<i class="iconfont step_btn" v-bind:class="[isShowing ? blurClass : '',bkClass]" @click="arrowTest()">&#xe619;</i>
+						<div ref="schItemShow2" class="schItemShow">
+							<el-form-item label="操作人" prop="creator">
+								<el-input v-model="queryForm.creator" @keyup.enter.native="queryTask('queryForm')" placeholder="请输入操作人"></el-input>
+							</el-form-item>
+							<el-form-item label="平台类型"  prop="platformType"> 
+								<el-select v-model="queryForm.platformType" placeholder="请选择平台类型" >
+									<el-option v-for="item in rank" :key="item.value" :label="item.label" :value="item.value">
+									</el-option>
+								</el-select>
+							</el-form-item>
+						</div>
+					</el-form>
+				</el-card>
+			</div>
+			<div class="RightRow">
+				<el-card>
+					<div class="buttonItem">
+						<el-button size="small" class="search_btn" @click="addDialog">新增任务</el-button>
+						<el-button size="small" class="search_btn" @click="executeTask('0')">批量执行</el-button>
+						<el-button size="small" plain class="opt_btn del_btn" @click="deleteRowTask()">批量删除</el-button>
+					</div>
+					<el-table ref="multipleTable" :data="tableData" tooltip-effect="dark" @selection-change="handleSelectionChange" :header-cell-style="headStyle">
+						<el-table-column type="selection" width="55" >
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="name" label='任务名称' min-width="100">
+						</el-table-column>
+						<el-table-column show-overflow-tooltip  prop="modelType" label='任务类型' min-width="100" :formatter="formatmodelType">
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="platformId" label='平台类型' min-width="100" align="center" :formatter="formatPlatformId">
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="creator" label='操作人' min-width="100" >
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="platformName" label='平台类型' min-width="100">
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="level" label='任务级别' min-width="100" >
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="executeRate" label='执行频率' min-width="100" >
+						</el-table-column>
+						<el-table-column show-overflow-tooltip prop="state" label='审核状态' min-width="100" >
+						</el-table-column>
+						<el-table-column prop="" label='节点详情' min-width="80"  fixed="right">
+							<template slot-scope="scope">
+								<el-popover trigger="hover" placement="top">
+									<el-table :data="scope.row.taskNodes">
+										<el-table-column show-overflow-tooltip prop="name" label='节点名称' >
+										</el-table-column>
+										<el-table-column show-overflow-tooltip prop="content" label='命令' >
+										</el-table-column>
+										<el-table-column show-overflow-tooltip prop="scriptAddress" label='脚本' >
+										</el-table-column>
+									</el-table>
+									<div slot="reference" style="font-size: 20px;" class="name-wrapper">
+										<i class="iconfont detail_btn">&#xe67a;</i>							
+									</div>
+								</el-popover>
+							</template>
+						</el-table-column>
+						<el-table-column label="操作" min-width="170" fixed="right">
+							<template slot-scope="scope">
+								<el-button type="text" class="table_btn" size="small" @click.stop="editTaskHTML(scope.row.id,'1')">修改</el-button>
+								<el-button type="text" class="table_btn" size="small" @click.stop="editTaskHTML(scope.row.id,'0')">复制</el-button>
+								<el-button type="text" class="table_btn" size="small" @click.stop="executeTask('1',scope.row.id)">执行</el-button>
+								<el-button type="text" class="table_btn" size="small" @click.stop="handleDelete(scope.row.id)">删除</el-button>
+							</template>
+						</el-table-column>
+					</el-table>
+					<div class="block" align="right">
+						<el-pagination align="right" background @size-change="handleSizeChange" @current-change="handleCurrentChange" :current-page="currentPage" :page-size="pageSize" :page-sizes="[10,20,50]" layout="total,sizes,prev, pager, next, jumper" :total="totalCount" :pager-count="5">
+						</el-pagination>
+					</div>
+				</el-card>
+			</div>
+		</div>
+
+		<!-- dialog -->
+		<!-- 新增命令弹窗 -->
+
+		<el-dialog :close-on-click-modal="false" :visible.sync="addUserDialog" :fullscreen="true" @close="dialogClose('form')" class="logAdd-dialog opt">
+			<div class="details-title">
+				<div>
+					<el-form :rules="rules" :inline="true" :model="form" label-position="right" label-width="90px" size="small" ref="form" style="text-align:left;">
+						<span class="sp"><span>任务信息</span></span>
+						<div class="logAdd-obj">
+							<el-form-item label="任务名称" prop="name">
+								<el-input v-model="form.name" @blur="nameCode"></el-input>
+							</el-form-item>
+							<el-form-item >
+								<el-tooltip class="item" effect="dark" content="2-15个字符,不能包含特殊符号" placement="right">
+									<i class="iconfont detail_btn" >&#xe6f4;</i>
+								</el-tooltip>
+							</el-form-item>
+							<el-form-item label="任务模板" prop="template">
+								<el-select v-model="form.template" placeholder="请选择模板" @change="taskTemplate">
+										<el-option
+										v-for="item in options"
+										:key="item.id"
+										:label="item.name"
+										:value="item.id">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<el-form-item label="任务级别" prop="taskRank">
+								<el-select v-model="form.taskRank" placeholder="请选择任务级别">
+									<el-option
+										v-for="item in rank"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<el-form-item label="平台类型" prop="platformType">
+								<el-select v-model="form.platformType" placeholder="请选择平台类型" @change="nameCode">
+									<el-option
+										v-for="item in platformType"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<el-form-item label="任务类型" prop="taskType">
+								<el-select v-model="form.taskType" placeholder="请选择任务类型" @change="nameCode" >
+									<el-option
+										v-for="item in taskTypeList"
+										:key="item.modelType"
+										:label="item.modelName"
+										:value="item.modelType"
+										:disabled="item.disabled">
+									</el-option>
+								</el-select>
+							</el-form-item>
+						</div>
+						<span class="sp" >
+							<span>编排形式</span>	
+						</span>
+						<div class="logAdd-obj">
+							<el-tabs type="border-card" v-model='arrangeValue'>
+								<el-tab-pane label="普通编排" name='first' >
+									<span class="sp" >
+										<span>节点信息</span>	
+										<i class="iconfont nodeAdd"  @click="addMes()">&#xe64b;</i>
+										<i class="iconfont nodeAdd">&#xe64d;</i>
+									</span>
+									<Common v-if="form.taskType == 1" ref="Common" v-bind:form="form" ></Common>
+									<nodeDeployUpdateTask v-else-if="form.taskType == 3" ref="nodeDeployUpdateTask" v-bind:form="form" ></nodeDeployUpdateTask>
+								</el-tab-pane>
+								<el-tab-pane label="图形编排" name='second' >
+									<div class="confInfo confInfo-mes">				
+										<bpmn  :filePath.sync="fileUrl" :parentDialog="dialogCloseFlag" @sonDialogFlag="recieveDialogFlag" @sendParentPath="receiveSonPath"></bpmn>
+									</div>
+								</el-tab-pane>
+							</el-tabs>
+						</div>
+						<br/>
+						<span class="sp" >
+							<span>执行配置</span>
+						</span>
+						<div class="logAdd-obj">
+							<el-form-item label="执行方式" prop="way">
+								<el-radio-group v-model="form.way">
+									<el-radio label="0">手动执行</el-radio>
+									<el-radio label="1">周期执行</el-radio>
+									<el-radio label="2">定时执行</el-radio>
+								</el-radio-group>
+							</el-form-item>
+							<br/>
+							<el-form-item label="选择日期" prop="selectDate" v-show="dateShow && disabledDate">
+								<el-date-picker
+									v-model="form.selectDate"
+									type="datetimerange"
+									value-format="yyyy-MM-dd HH:mm:ss"
+									range-separator="至"
+									start-placeholder="开始日期"
+									end-placeholder="结束日期"
+									:picker-options="pickerOptions" 
+									:editable='false'>
+								</el-date-picker>
+							</el-form-item>
+							<el-form-item label="选择日期" prop="selectDate" v-show="dateShow && disabledDate == false">
+								<el-date-picker
+									v-model="form.selectDatetwo"
+									value-format="yyyy-MM-dd HH:mm:ss"
+									type="datetime"
+									placeholder="选择日期时间"
+									:picker-options="pickerOptionTime" 
+									:editable='false'>
+								</el-date-picker>
+							</el-form-item>
+							<br/>
+							<el-form-item label="设置频率">
+								<el-input-number v-model="form.frequency" controls-position="right"  :min="1" :max="60"></el-input-number>
+							</el-form-item>
+							<el-form-item label="频率时间">
+								<el-select  v-model="form.region" placeholder="选择时间单位">
+										<el-option label="天" value="天"></el-option>
+										<el-option label="时" value="时"></el-option>
+										<el-option label="分" value="分"></el-option>
+									</el-select>
+							</el-form-item>
+							<el-form-item label="触发条件" prop="conditionObject conditionIndex conditionType conditionRelation">
+								<el-select v-model="form.conditionObject" placeholder="择任对象">
+									<el-option
+										v-for="item in options"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+								
+								<el-select v-model="form.conditionIndex" placeholder="择任指标">
+									<el-option
+										v-for="item in options"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+								
+								<el-select v-model="form.conditionType" placeholder="择任类型">
+									<el-option
+										v-for="item in options"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+								<el-select v-model="form.conditionRelation" placeholder="关联关系">
+									<el-option
+										v-for="item in options"
+										:key="item.value"
+										:label="item.label"
+										:value="item.value">
+									</el-option>
+								</el-select>
+							</el-form-item>
+							<br/>
+							<el-form-item label="超时阈值" prop="overTimeDate">
+									<el-input-number v-model="form.overTime" controls-position="right"  :min="1" :max="60"></el-input-number>
+							</el-form-item>
+							<el-form-item label="阈值时间" prop="overTimeDate">
+								<el-select v-model="form.overTimeDate" placeholder="选择时间单位">
+										<el-option label="天" value="天"></el-option>
+										<el-option label="时" value="时"></el-option>
+										<el-option label="分" value="分"></el-option>
+								</el-select>
+							</el-form-item>
+							
+						</div>
+					</el-form>
+				</div>
+			</div>
+			<div class="details-title">
+				<div class="sBtn">
+					<el-button class="cancel" @click="dialogClose('form')">取消</el-button>
+				<el-button class="finish"  @click="addDialogSave('form')">保存</el-button>
+				</div>
+			</div>
+		</el-dialog>
+
+
+		
+
+	</div>
+</template>
+
+
+<script>
+	import * as service from '@/modules/ops/api/ops/taskManagement/taskManagement.js'
+	import * as publicjs from '@/modules/ops/api/ops/public/public.js'
+	
+	import * as rule from '@/modules/ops/api/rules.js'
+	import bpmn from '@/components/bpmn/bpmn.vue'
+	import { getToken } from '@/utils/auth'
+	import { setTimeout } from 'timers';
+	// 节点组件
+	import Common from '@/modules/ops/components/node/Common'
+	import nodeDeployUpdateTask from '@/modules/ops/components/node/nodeDeployUpdateTask'
+	export default {
+		data() {
+			return {
+				// ----------------------------------------------------------
+				checkList:[],
+				// 图标样式
+				isShowing: false,
+				bkClass: 'bk',
+				blurClass: 'blur',
+				// 表头样式
+				headStyle: {
+					'background-color': '#F4F8F9',
+					'color': 'rgba(0,0,0,0.60)',
+				},
+				pickerOptions: {
+					disabledDate(time) {
+						return time.getTime() < new Date(new Date().toLocaleDateString()).getTime();
+					}
+				},
+				pickerOptionTime: {
+					disabledDate(time) {
+						return time.getTime() < new Date(new Date().toLocaleDateString()).getTime();
+					}
+				},
+
+
+
+				fileListChoose:[],
+				// 保存addObject index
+				addObjectIndex : '',
+				// 选择的主机数组
+				hostIPDate: [],
+				userInfoData:[],
+				// 选择对象弹框
+				addObjectDialog:false,
+				// 新增主机
+				addObjectForm:{
+					main:[],
+				},
+				addObjectFormRules:{
+					main: [
+						{ type:'array' , required: true, message: '请选择主机用户', trigger: 'change' }
+					],
+				},
+				// 选择对象标签页
+				typeName: '',
+				base_api:'',
+				// 记录点击的时第几个上传的按钮
+				upIndex:'',
+				// 控制表格加载
+				tableLoading:true,
+				// 表格选中的行
+				multipleSelection: [],
+				// ----------------------------------------------------------
+				fileUrl: '',
+				popoverWidth:"200",
+				// 控制显示哪种日期选择器
+				dateShow:false,
+				// 控制频率是否可选
+				frequencyShow:false,
+				// 控制日期选择器是否可以选择
+				disabledDate:true,
+				// 编辑的id
+				editId: '',
+				// 判断是新增还是编辑
+				editBol: '0',
+
+				pageSize: 10, // 每页多少条
+				currentPage: 1, // 当前页
+				totalCount: 1, // 总条数
+				fileList:[],
+				tableData:[],
+				radio: '1',
+				addUserDialog:false,
+				value6:'',
+				num1:0,
+				taskDate:[],
+				modelType:'',
+				// 首頁查詢表單
+				queryForm:{
+					platformType:'',
+					taskType:'',
+					name:'',
+					creator:'',
+					modelType:'',
+				},
+				queryRules:{
+					name:[ 
+						{ validator: rule.validateQueryName, trigger: 'blur' },
+					],
+					creator:[
+						{ validator: rule.validateQueryName, trigger: 'blur' },
+					],
+				},
+				id:'',
+				ids:'',
+				value1:'',
+				taskTypeList: [],
+				
+				options: [],
+
+				form: {
+					// 平台类型
+					platformType :"",
+					template: "",
+					name: "",
+					region: "分",
+					date1: "",
+					mes: [
+						// {name:'',types:"",id:"",node:"",order:"",scrip:"",typeId:""}
+					],
+					Common:[],
+					deployUpdateTask: [],
+					date2: "",
+					delivery: false,
+					type: [],
+					taskType: 1,
+					operator: "",
+					taskRank: "",
+					way: "0",
+					conditionObject: "",
+					conditionIndex: "",
+					conditionType: "", 
+					conditionRelation: "",
+					selectDate: "",
+					selectDatetwo: "",
+					frequency: "",
+					overTime: "5",
+					overTimeDate: "分",
+					valueMinute: "",
+					valueSecond: "",
+					resource: "",
+					desc: "",
+					activeNames: [],
+				},
+				rules: {
+					name: [
+						{ required: true, validator: rule.validateCode, trigger: 'blur' },
+						{ min: 2, max: 15, message: '长度在 2 到 15 个字符', trigger: 'blur' }
+					],
+					platformType: [
+						{ required: true, message: '请选择平台类型', trigger: 'change' }
+					],
+					taskType: [
+						{ required: true, message: '请选择任务类型', trigger: 'change' }
+					],
+					taskRank: [
+						{ required: true, message: '请选择任务级别', trigger: 'change' }
+					],
+					overTimeDate: [
+						{ required: true, message: '请选择时间单位', trigger: 'change' }
+					]
+				},
+				rank: [{
+					value: '1',
+					label: '低'
+				}, {
+					value: '2',
+					label: '中'
+				}, {
+					value: '3',
+					label: '高'
+				}],
+				platformType: [{
+					value: 1,
+					label: 'laaS层基础平台'
+				}, {
+					value: 2,
+					label: 'paaS软件集群'
+				}, {
+					value: 3,
+					label: 'SaaS层应用'
+				}],
+				value: '',
+				activeName: 'first',
+				selectModel:[],
+				taskModel:'',
+				selectModelType:[],
+				//bpmnShow: false,
+				graphicalArrange: 'no',
+				arrangeValue: 'first',
+				general: false,
+				graphical: true,
+
+				dialogCloseFlag: false,	//记录对话框有没有关闭，并将这个值传给bpmn组件使用
+
+				unfoldTreeIs:[],
+				scriptPath:'',	//保存子组件返回来的脚本路径
+			};
+		},
+
+		mounted() {
+			this.queryIP();
+			this.queryTask();
+			this.taskType();
+			this.queryModel();
+			// 获取任务模板接口
+			this.taskTemplateAxios()
+		},
+		updated(){
+			this.isNull()
+		},
+		computed: {
+			myHeaders: function () {
+				// `this` 指向 vm 实例
+				const datas = {
+					'X-Token':getToken()
+				}
+				return datas
+			}
+		},
+		methods: {
+			// ----------------------------------------------------------
+			//点击鼠标显示
+			arrowTest() {
+				this.isShowing = !this.isShowing;
+
+				if(this.$refs.schItemShow2.style.display == 'block') {
+					this.$refs.schItemShow2.style.display = 'none';
+				} else {
+					this.$refs.schItemShow2.style.display = 'block';
+				}
+			},
+			// 表单重置
+			queryTaskRest(formName) {
+				this.$refs[formName].resetFields();
+			},
+			// 重名验证
+			nameCode() {
+				if(this.form.name != '' && this.form.taskType != '' && this.form.platformType != ''){
+					const params = {
+						name:this.form.name,
+						modelType:this.form.taskType,
+						platformId:this.form.platformType,
+					}
+					if(this.editBol == '1') {
+						params.id = this.editId
+					}
+					service.addTaskRepeatName(params).then(res => {
+						if(res.code == 400){
+							this.$message({
+								type: 'warning',
+								message: res.msg
+							});  
+							this.form.name = ''
+						}
+					})
+				}
+			},
+			// 选择对象弹框
+			addObject(indexs) {
+				this.addObjectIndex = indexs;
+				this.addObjectDialog = true;
+			},
+			//IP地址查询
+			queryIP() {
+				service.queryIP().then(res => {
+					this.hostIPDate = res.result;
+				})
+			},
+			// 关闭弹框的毁掉
+			closeMainDialog(formName) {
+				this.$refs[formName].resetFields();
+			},
+			// 删除标签事件
+			closeTag(tag,index) {
+				this.form.mes[index].resourceGroupName.splice(this.form.mes[index].resourceGroupName.indexOf(tag), 1);
+			},
+			// 巡检指标函数
+			tabsPolling(tab, event) {
+				console.log(tab, event);
+			},
+			// 上传完成时触发的函数
+			onSuccess(response, file, fileList){
+				const _self = this
+				if(response.code == 200){
+					_self.form.mes[_self.upIndex].scriptAddress = response.result
+					_self.form.mes[_self.upIndex].scriptAddressName = fileList[0].name
+					// _self.form.mes[_self.upIndex].scriptAddressName.push(fileList[0].name) 
+					_self.form.mes[_self.upIndex].isScript = "1"
+				}else {
+					this.$message({
+						type: 'warning',
+						message: response.msg
+					}); 
+				}
+			},
+			// 点击上传按钮事件
+			btnUp(datas) {
+				// this.form.mes[datas].fileList = []
+				this.upIndex = datas
+			},
+			// 表格转换
+			// 平台类型转换
+			formatPlatformId(row, column) {
+				var data = ''
+				var array = ['laaS层基础平台','paaS软件集群','SaaS层应用']
+				data = array[row.platformId-1]
+				return data
+			},
+			formatmodelType(row, column) {
+				var data = ''
+				var array = ['普通类型','服务启停','部署更新','自动迁移','自动巡检','诊断处理','资源调配']
+				data = array[row.modelType-1]
+				return data
+			},
+			// 日期时间转换函数
+			getTime(datas) {
+				this.form.selectDate = datas;
+			},
+			// 折叠面板函数
+			handleChange(val) {
+				this.activeNames = val
+			},
+			
+			// ----------------------------------------------------------
+			// 任务模板获取数据
+			taskTemplateAxios() {
+				service.taskTemplateAxios().then(res => {
+					if(res.code == 200) {
+						this.options = res.result.model
+					}
+					
+				})
+			},
+			// 任务模板回调
+			taskTemplate(val) {
+				const _self = this
+				const params = {
+					id:val
+				}
+				service.taskTemplateClick(params).then(res => {
+					var axiosData = res.result.model
+					if(res.code == 200) {
+						_self.form.mes= []
+						for(var i = 0 ; i<axiosData.templateNodes.length;i++){
+							var obj = {};
+							obj.node = "当前为节点 " + Number(i+1)
+							obj.content = axiosData.templateNodes[i].content
+							obj.isScript = axiosData.templateNodes[i].isScript
+							obj.name = axiosData.templateNodes[i].name
+							obj.scriptAddress = axiosData.templateNodes[i].scriptAddress
+							obj.scriptAddressName = axiosData.templateNodes[i].scriptAddress
+							// obj.scriptAddressName.push(axiosData.templateNodes[i].scriptAddress)
+							obj.step = axiosData.templateNodes[i].step
+							obj.resourceGroupName= [];
+							_self.form.mes.push(obj)
+							this.activeNames.push(Number(i+1))
+						}
+						const datas = res.result;
+						// _self.form.mes = axiosData.templateNodes;
+						_self.form.platformType = axiosData.platformId;
+						// _self.form.name = axiosData.name;
+						_self.form.taskType = Number(axiosData.modelType) ;
+					}
+					
+				})
+			},
+			// 复制该节点
+			copyNode(datas,indexs) {
+				var obj = {};
+				obj.id = datas.id;
+				obj.step = datas.step;
+                obj.name = datas.name;
+                obj.region = datas.region;
+                obj.types = datas.types;
+                obj.resourceGroupName= [];
+				for(var i = 0 ; i < datas.resourceGroupName.length; i++) {
+					obj.resourceGroupName.push(datas.resourceGroupName[i])
+				}
+                obj.node = datas.node;
+                obj.content = datas.content;
+				obj.scriptAddress = datas.scriptAddress;
+				obj.scriptAddressName = datas.scriptAddressName;
+				obj.fileList = datas.fileList;
+				obj.isScript = datas.isScript;
+				obj.user = datas.user;
+				// this.form.mes.push(obj);
+				this.form.mes.splice(indexs+1,0,obj);
+				this.activeNames = []
+				for(var i = 0 ; i < this.form.mes.length ; i ++){
+					this.form.mes[i].node = "当前为节点 " + Number(i+1)
+					this.form.activeNames.push(Number(i+1))
+					this.form.mes[i].step = Number(i+1)
+					this.form.mes[i].id = Number(i+1)
+				}
+			},
+			// 删除节点的函数
+			delNode(indexs) {
+				this.$confirm('此操作将永久删除该节点, 是否继续?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'warning'
+					}).then(() => {
+					this.form.mes.splice(indexs, 1); 
+					for(var i = 0 ; i < this.form.mes.length ; i ++){
+						this.form.mes[i].node = "当前为节点 " + Number(i+1)
+					}
+					for(var i = 0 ; i < this.form.mes.length ; i ++){
+						this.form.mes[i].step = i+1
+					}
+					this.$message({
+						type: 'success',
+						message: '删除成功!'
+					});
+					}).catch(() => {
+					this.$message({
+						type: 'info',
+						message: '已取消删除'
+					});          
+				});
+				
+			},
+			// 重置表单数据的函数
+			resetForm() {
+				this.form.template= "";
+				this.form.name= "";
+				this.form.region= "分";
+				this.form.date1= "";
+				this.form.mes= [
+					// {sname:'',types:"",id:"",node:"",order:"",scrip:"",typeId:""}
+				];
+				this.form.date2= "";
+				this.form.delivery= false;
+				this.form.type= [];
+				this.form.taskType= 1;
+				this.form.operator= "";
+				this.form.taskRank= "";
+				this.form.way= "0";
+				this.form.conditionObject= "";
+				this.form.conditionIndex= "";
+				this.form.conditionType= "";
+				this.form.conditionRelation= "";
+				this.form.selectDate= [];
+				this.form.selectDatetwo= "";
+				this.form.frequency= "";
+				this.form.overTime= "5",
+				this.form.overTimeDate= "分",
+				this.form.valueMinute= "";
+				this.form.valueSecond= "";
+				this.form.resource= "";
+				this.form.desc= "";
+				this.form.platformType = "",
+				// 编辑需要传的参数
+				this.editId = "";
+				this.editBol = '0';
+				this.createTime = "";
+
+				
+			},
+			//表单保存
+			saveFrom(){
+				// 隐藏表单弹框
+				addMesTypeDialog = false
+				
+			},
+			// 首頁表單查询
+			queryTaskClick(formName) {
+				this.$refs[formName].validate((valid) => {
+					if (valid) {
+						this.tableLoading = true;
+						const params = {
+							modelType:this.queryForm.modelType,
+							name:this.queryForm.name,
+							creator:this.queryForm.creator,
+							start: (this.currentPage - 1) * this.pageSize,
+							limit: this.pageSize
+						}
+						// this.queryModel()
+						service.queryTask(params).then(res => {
+							const datas = res.result.list;
+							for(var i = 0 ; i < datas.length;i++) {
+								for(var j = 0 ;j<datas[i].taskNodes.length;j++){
+									if(datas[i].taskNodes[j].scriptAddress !== null) {
+										datas[i].taskNodes[j].scriptAddress = datas[i].taskNodes[j].scriptAddress.substring(datas[i].taskNodes[j].scriptAddress.lastIndexOf('\\') + 14,datas[i].taskNodes[j].scriptAddress.length)
+									}
+								}
+							}
+							this.tableData = datas;
+							this.totalCount = res.result.count;
+							this.tableLoading = false;
+							
+						})
+						
+					} else {
+						console.log('error submit!!');
+						return false;
+					}
+				});
+			},
+			//表单查询
+			queryTask() {
+				const params = {
+					modelType:this.queryForm.modelType,
+					name:this.queryForm.name,
+					creator:this.queryForm.creator,
+					start: (this.currentPage - 1) * this.pageSize,
+					limit: this.pageSize
+				}
+				service.queryTask(params).then(res => {
+					const datas = res.result.list;
+					for(var i = 0 ; i < datas.length;i++) {
+						for(var j = 0 ;j<datas[i].taskNodes.length;j++){
+							if(datas[i].taskNodes[j].scriptAddress !== null) {
+							datas[i].taskNodes[j].scriptAddress = datas[i].taskNodes[j].scriptAddress.substring(datas[i].taskNodes[j].scriptAddress.lastIndexOf('\\') + 14,datas[i].taskNodes[j].scriptAddress.length)
+								
+							}
+						}
+					}
+					this.tableData = datas;
+					this.totalCount = res.result.count;
+				})
+			},
+			
+			//模板查询
+			queryModel() {
+				service.queryModel().then(res => {
+					this.selectModel = res.result.list;
+				})
+			},
+			
+			//模板查询
+			queryModelType() {
+				const params = {
+					
+				}
+				service.queryModelType().then(res => {
+					this.selectModelType = res.result;
+				})
+			},
+			
+			//任务类型查询
+			taskType() {
+				service.taskType().then(res => {
+					console.log(res)
+					this.taskDate=res.result
+					this.taskTypeList = res.result
+					
+					this.taskTypeList[1].disabled = true;
+					this.taskTypeList[3].disabled = true;
+					this.taskTypeList[5].disabled = true;
+					this.taskTypeList[6].disabled = true;
+
+
+
+					// this.taskTypeList[2].disabled = true;
+					this.taskTypeList[4].disabled = true;
+				})
+			},
+			//tab切换
+			handleClick(tab, event) {
+				console.log(tab, event);
+			},
+			//删除单条信息
+			handleDelete(id) {
+				
+				this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'error'
+				}).then(() => {
+					const params = {
+						ids: id
+					}
+					service.deleteTask(params).then(res => {
+						
+						this.$message({
+							type: 'success',
+							message: res.msg
+						})
+						this.queryTask()
+					}).catch(() => {
+						this.$message({
+							type: 'info',
+							message: res.msg
+						})
+					})
+				}).catch(() => {
+					this.$message({
+						type: 'info',
+						message: '已取消删除'
+					})
+				})
+			},
+			
+			//复选框
+			handleSelectionChange(val){
+				this.multipleSelection  = val
+			},
+			
+			//多条删除		
+			deleteRowTask() {
+				const _self = this
+				var ids = [];
+				if(this.multipleSelection.length == 0) {
+					this.$message({
+						message: '请选择需要删除的数据',
+						type: 'warning'
+					});
+				}else{
+					this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+						confirmButtonText: '确定',
+						cancelButtonText: '取消',
+						type: 'error'
+					}).then(() => {
+						_self.multipleSelection.forEach((item,index)=>{
+							ids.push(item.id)
+						})
+						service.deleteRowTask(ids).then(res=>{
+							this.$message({
+									type: 'success',
+									message: res.msg
+								})
+							_self.queryTask()
+						}).catch(() => {
+							this.$message({
+								type: 'info',
+								message: res.msg
+							})
+						})
+					}).catch(() => {
+						this.$message({
+							type: 'info',
+							message: '已取消删除'
+						})
+					})
+				}
+					
+			},
+			
+			//执行	
+			executeTask(types,dataId) {
+				var ids = [];
+				// types 0多条执行 types 1单条执行
+				
+				if(types == '0') {
+					if(this.multipleSelection.length == 0) {
+						this.$message({
+							message: '请选择需要执行的数据',
+							type: 'warning'
+						});
+						return false;
+					}
+					this.multipleSelection.forEach((item,index)=>{
+						ids.push(item.id)
+					})
+				}else if(types == '1'){
+					ids.push(dataId)
+				}
+				
+				
+				
+				this.$confirm('是否开始执行所选任务', '提示', {
+					confirmButtonText: '确定',
+					cancelButtonText: '取消',
+					type: 'success'
+				}).then(() => {
+				
+				let params = {
+					taskIds:ids.join(',')
+				}
+				service.executeTask(params).then(res=>{
+					this.$message({
+							type: 'success',
+							message: res.msg
+						})
+					this.queryTask()
+				}).catch(() => {
+						this.$message({
+							type: 'info',
+							message: res.msg
+						})
+					})
+				}).catch(() => {
+					this.$message({
+						type: 'info',
+						message: '已取消操作'
+					})
+				})
+			},
+			
+			//分页条数设置
+			handleSizeChange(val) { // 设置每页多少条
+				this.pageSize = val
+				this.queryTask()
+			},
+			//当前页
+			handleCurrentChange(val) { // 当前页
+				this.currentPage = val
+				this.queryTask()
+			},
+			//新增配置信息对象类型弹出框
+			addMesType() {
+				this.addMesTypeDialog = true
+			},
+			//配置信息对象类型弹出框取消
+			addMesTypeDialogFail() {
+				this.addMesTypeDialog = false
+				// this.$refs.tree.setCheckedKeys([]);
+			},			
+			//新增弹出框
+			addDialog() {
+				// 表单重置函数
+				this.resetForm()
+				
+				this.addUserDialog = true
+			},
+			// 新增弹出框点击关闭或阴影
+			dialogClose(formName) {
+				this.$refs[formName].resetFields();
+				this.addUserDialog = false;
+				this.dialogCloseFlag = true;
+				
+			},
+			//新增弹出框取消
+			addDialogFail(formName) {
+				this.$refs[formName].resetFields();
+				this.addUserDialog = false
+			},
+			// 打开编辑/复制
+			editTaskHTML(ids,bol) {
+				// 任务类型接口
+				service.taskType().then(res => {
+					
+					this.taskTypeList = res.result
+					const params = {
+						id: ids
+					};
+					service.editTaskCusOpen(params).then(res => {
+						// 表单重置函数
+						this.resetForm()
+						this.editBol = bol
+						this.editId = ids
+						this.createTime = res.result.createTime
+						var overTime = eval('(' + res.result.param + ')').over_time
+						overTime = overTime.substring(0, overTime.length - 1);  
+						var overTimeDate = eval('(' + res.result.param + ')').over_time
+						var strs=overTimeDate.split(""); //字符分割 
+						for (var i=0;i<strs.length ;i++ ) {
+							overTimeDate = strs[i]
+						}
+						this.addUserDialog = true;
+						const datas = res.result;
+						for(var j = 0 ;j<datas.taskNodes.length;j++){
+							datas.taskNodes[j].resourceGroupName = datas.taskNodes[j].resourceGroup.split(',')
+							if(datas.taskNodes[j].scriptAddress !== null) {
+								datas.taskNodes[j].scriptAddressName = datas.taskNodes[j].scriptAddress.substring(datas.taskNodes[j].scriptAddress.lastIndexOf('\\') + 14,datas.taskNodes[j].scriptAddress.length)
+								// datas.taskNodes[j].scriptAddressName.push(datas.taskNodes[j].scriptAddress.substring(datas.taskNodes[j].scriptAddress.lastIndexOf('\\') + 14,datas.taskNodes[j].scriptAddress.length)) 
+							}
+						}
+						if(Number(res.result.modelType) == 1){
+							this.form.Common = res.result.taskNodes;
+							for(var i = 0 ; i < this.form.Common.length ; i ++){
+								this.form.Common[i].resourceGroupName = this.form.Common[i].resourceGroup.split(',')
+								this.form.Common[i].node = "当前为节点 " + Number(i+1)
+								this.form.activeNames.push(i+1)
+								this.form.Common[i].step = i+1
+							}
+						}else if(Number(res.result.modelType) == 1){
+							this.form.nodeDeployUpdateTask = res.result.taskNodes;
+							for(var i = 0 ; i < this.form.nodeDeployUpdateTask.length ; i ++){
+								this.form.nodeDeployUpdateTask[i].resourceGroupName = this.form.nodeDeployUpdateTask[i].resourceGroup.split(',')
+								this.form.nodeDeployUpdateTask[i].node = "当前为节点 " + Number(i+1)
+								this.form.activeNames.push(i+1)
+								this.form.nodeDeployUpdateTask[i].step = i+1
+							}
+						}
+						
+						this.form.platformType = res.result.platformId;
+						this.form.taskType = Number(res.result.modelType) ;
+						this.form.name = res.result.name;
+						this.form.taskRank = eval('(' + res.result.param + ')').task_level;
+						this.form.overTime = overTime
+						// this.form.overTimeDate = overTimeDate
+
+						var str1 = res.result.trigger.executeRate.substring(res.result.trigger.executeRate.length-2,0)
+						this.form.frequency =str1.substring(0,str1.length-1)
+						this.form.region = str1.substring(str1.length-1,str1.length)
+
+						this.form.way = res.result.trigger.triggerType
+						if(res.result.trigger.triggerType == 1) {
+							this.form.selectDate = []
+							this.form.selectDate.push(res.result.trigger.startPlanTime) 
+							this.form.selectDate.push(res.result.trigger.endPlanTime)
+						}
+						if(res.result.trigger.triggerType == 2) {
+							this.form.selectDatetwo = res.result.trigger.startPlanTime;
+						} 
+						
+					})
+				})
+			},
+			// 新增命令弹框的保存
+			addDialogSave(formName) {	
+				var node = []
+				if(this.form.taskType == 1) {
+					node = this.form.Common
+				}else if (this.form.taskType == 3){
+					node = this.form.deployUpdateTask
+				}
+				if(this.form.taskType == 1) {
+					for(var i = 0 ; i <node.length;i++) {
+						if(node[i].isScript == 0) {
+							if(node[i].content == ''){
+								this.$message({
+									message:'节点'+Number(i+1)+'命令不能为空',
+									type: 'warning'
+								});
+								return
+							}
+						}else if (node[i].isScript == 1){
+							if(node[i].scriptAddressName == ''){
+								this.$message({
+									message:'节点'+Number(i+1)+'脚本不能为空',
+									type: 'warning'
+								});
+								return
+							}
+						}
+					}
+				}
+				if(this.form.taskType == 3) {
+					for(var i = 0 ; i <node.length;i++) {
+						if(node[i].scriptBol == 2) {
+							if(node[i].isScript == "0") {
+								if(node[i].startCmd == ''){
+									this.$message({
+										message:'节点'+Number(i+1)+'命令不能为空',
+										type: 'warning'
+									});
+									return
+								}
+							}else if (node[i].isScript == "1"){
+								if(node[i].scriptAddressName == ''){
+									this.$message({
+										message:'节点'+Number(i+1)+'脚本不能为空',
+										type: 'warning'
+									});
+									return
+								}
+								if(node[i].startScript == ''){
+									this.$message({
+										message:'节点'+Number(i+1)+'启动脚本不能为空',
+										type: 'warning'
+									});
+									return
+								}
+							}
+						}
+					}
+				}
+				this.$refs[formName].validate((valid) => {
+					if (valid) {
+						var dateIndex = '';
+						var dateIndexTwo = '';
+						var frequencydata = '';
+						if(this.form.way == 2) {	//代表的是定时执行
+							console.log('print this.form.way');
+							console.log(this.form.way);
+							dateIndex = this.form.selectDatetwo;
+							if(dateIndex == '') {
+								this.$message({
+									type: 'warning',
+									message: '请选择时间!'
+								})		
+								return false
+							}
+							var thisTime=dateIndex.replace(/-/g, '/');
+							var time=(new Date(thisTime)).getTime();
+							var timeNow=(new Date()).getTime();
+							if(time<timeNow){
+								this.$message({
+									type: 'warning',
+									message: '选择日期时间不能小于当前系统时间!'
+								})		
+								return false;
+							}
+							
+						}
+						if(this.form.way == 1) {
+							console.log('print this.form.way');
+							console.log(this.form.way);
+							console.log(this.form.selectDate)
+							frequencydata = this.form.frequency + "" + this.form.region + "/次";
+							if(this.form.selectDate.length == 0) {
+								this.$message({
+									type: 'warning',
+									message: '请选择时间!'
+								})		
+								return false
+							}
+							dateIndex = this.form.selectDate[0];
+							dateIndexTwo = this.form.selectDate[1];
+							var thisTime1=dateIndex.replace(/-/g, '/');
+							var thisTime2=dateIndexTwo.replace(/-/g, '/');
+							var time1=(new Date(thisTime1)).getTime();
+							var time2=(new Date(thisTime2)).getTime();
+							var timeNow=(new Date()).getTime();
+							if(time1<timeNow){
+								this.$message({
+									type: 'warning',
+									message: '选择开始时间不能小于当前系统时间!'
+								})		
+								return false;
+							}
+							if(time2<timeNow){
+								this.$message({
+									type: 'warning',
+									message: '选择结束时间不能小于当前系统时间!'
+								})		
+								return false;
+							}
+							if(time2<time1||time2==time1){
+								this.$message({
+									type: 'warning',
+									message: '选择结束时间不能小于开始时间!'
+								})		
+								return false;
+							}
+						}
+						
+						const param = {
+							task_level: this.form.taskRank,
+							over_time: this.form.overTime+""+this.form.overTimeDate
+						};
+						const jsonStr = JSON.stringify(param);
+						for(var i = 0 ; i < node.length; i ++){
+							// isScript 0命令 1脚本
+							if(node[i].isScript == 0){
+								// 清空脚本
+								node[i].scriptAddress = ''
+								node[i].scriptAddressName = []
+							}else if(node[i].isScript == 1){
+								// 清空命令
+								node[i].content = ''
+							}
+							node[i].resourceGroup = node[i].resourceGroupName.join(',')
+						}
+						const params = {
+							platformId: this.form.platformType,
+							modelType:this.form.taskType,
+							name:this.form.name,
+							taskNodes:node,
+							trigger: {
+								startPlanTime: dateIndex,
+								endPlanTime: dateIndexTwo,
+								triggerType: this.form.way,
+								executeRate: frequencydata
+							},
+							param: jsonStr,
+							scriptAddress:this.scriptPath
+						}
+						if(this.editBol == '0') {
+							// 新增
+							if(this.fileUrl) params.scriptAddress = this.fileUrl
+							service.AddTaskCus(params).then(res => {
+								if(res.code == 200) {
+									this.queryTask();
+									this.resetForm();
+									this.addUserDialog = false
+								}else {
+									this.$message({
+										type: 'info',
+										message: res.msg
+									})
+								}
+							})
+							
+						}else if((this.editBol == '1') ){
+							// 编辑
+							params.id = this.editId
+							service.editTaskCus(params).then(res => {
+								if(res.code == 200) {
+									this.queryTask();
+									this.resetForm();
+									this.addUserDialog = false
+								}else {
+									this.$message({
+										type: 'info',
+										message: res.msg
+									})
+								}
+							})
+						}else if((this.editBol == '2') ){
+							// 复制
+							params.id = this.editId
+							service.taskCusCopy(params).then(res=>{
+								if(res.code == 200) {
+									this.queryTask();
+									this.resetForm();
+									this.addUserDialog = false
+								}else {
+									this.$message({
+										type: 'info',
+										message: res.msg
+									})
+								}
+							})
+						}
+						
+					} else {
+					console.log('error submit!!');
+						this.$message('保存失败');
+						return false;
+					}
+				});
+				
+			},
+			// 新增配置信息
+			addMes() {
+				var obj = {};
+				if(this.form.taskType == 1){
+					obj.id = "";
+					obj.step = "";
+					obj.name = "";
+					obj.region = "";
+					obj.types = "";
+					obj.node = "";
+					obj.content = "";
+					obj.resourceGroupName= [];
+					obj.scriptAddress = "";
+					obj.scriptAddressName = "";
+					obj.fileList = [];
+					obj.isScript = "0";
+					obj.user = [];
+					this.form.Common.push(obj)
+					for(var i = 0; i < this.form.Common.length; i++) {
+						this.form.Common[i].node = "节点 " + Number(i + 1)
+						this.form.Common[i].step = Number(i + 1)
+						this.form.Common[i].id = Number(i + 1)
+					}
+				}else if (this.form.taskType == 3){
+					obj.id = "";
+					obj.resourceGroupDel= [];
+					obj.resourceGroupName= [];
+					obj.appOwnerList = [
+						{value: '0',label: '公有'},
+						{value: '1',label: '私有'},
+					];
+					obj.dstHosts = '';
+					obj.UseTreeData = []
+					obj.user = "";
+					obj.startCmd = "";
+					obj.packageUrl = "";
+					obj.configUrl  = "" ;
+					obj.chooseObject = "0";
+					obj.typeClassId = "";
+					obj.typeClassIdList = [];
+					obj.typeId = "";
+					obj.typeIdList = [];
+					obj.appId = "";
+					obj.appIdList = [];
+					obj.versionId = "";
+					obj.versionIdList = [];
+					obj.appOwner = "";
+					obj.useChoose = [];
+					obj.installDir = "";
+					obj.configDir = "";
+					obj.envVar = "";
+					obj.startUrl = "";
+					obj.extendContent = [];
+					obj.order= "",
+					obj.step = "";
+					obj.name = "";
+					obj.region = "";
+					obj.types = "";
+					obj.target= "";
+					obj.node = "";
+					obj.startScript  = "";
+					obj.startUrlName = "";
+					obj.fileList = [];
+					obj.isScript = "0";
+					obj.typeName = '';
+					obj.scriptBol = '';
+					obj.scriptAddress = "";
+					obj.scriptAddressName = "";
+					this.form.deployUpdateTask.push(obj)
+					for(var i = 0; i < this.form.deployUpdateTask.length; i++) {
+						this.form.deployUpdateTask[i].node = "节点 " + Number(i + 1)
+						this.form.deployUpdateTask[i].step = Number(i + 1)
+						this.form.deployUpdateTask[i].id = Number(i + 1)
+					}
+				}
+				
+			},
+			addUser() {
+				console.log("add");
+			},
+			delUser() {
+				console.log("del");
+			},
+			//文件上传
+			handleRemove(file, fileList) {
+				console.log(file, fileList);
+			},
+			handlePreview(file) {
+				console.log(file);
+			},
+			handleExceed(files, fileList) {
+				this.$message.warning(`当前限制选择 1 个文件，本次选择了 ${files.length} 个文件，共选择了 ${files.length + fileList.length} 个文件`);
+			},
+			beforeRemove(file, fileList) {
+				return this.$confirm(`确定移除 ${ file.name }？`);
+			},
+			//通过控制bpmnShow的值来控制bpmn组件
+			isNull(){
+				// if(this.form.name){
+				// 	this.bpmnShow = true
+				// }
+			},
+
+			//修改arrangeValue
+			modifyArrangeYes(){
+				this.arrangeValue = 'second';
+				this.general = false;
+				this.graphical = true;
+			},
+			modifyArrangeNo(){
+				this.arrangeValue = 'first';
+				this.general = true;
+				this.graphical = false;
+			},
+
+			//接收子组件的值(用于重新将dialogCloseFlag重新初始化为false)
+			recieveDialogFlag(sonDialogFlag){
+				this.dialogCloseFlag = sonDialogFlag;
+			},
+
+			//接收子组件点击保存按钮后返回来的路径
+			receiveSonPath(sonScriptPath){
+				this.scriptPath = sonScriptPath;
+			}
+		},
+		watch:{
+			'form.way': function(newVal){
+				console.log(newVal)
+				// 0手动执行 1周期执行 2定时执行
+				if(newVal == 0) {
+					this.dateShow = false;
+					this.frequencyShow = false;
+				}else if (newVal == 1) {
+					this.dateShow = true;
+					this.disabledDate = true;
+					this.frequencyShow = true;
+				}else if (newVal == 2) {
+					this.dateShow = true;
+					this.disabledDate = false;
+					this.frequencyShow = false;
+				}
+            },
+      'fileUrl': {
+      handler(newValue, oldValue) {
+        // this.myPath = newValue
+        console.log('fileUrl',newValue);
+        // changeRuleScript(myRuleId)
+      },
+       deep: true
+    },
+   
+		},
+		components: {
+			bpmn,
+			Common,
+			nodeDeployUpdateTask
+		},
+	};
+</script>
+<style scoped lang="scss">
+	
+@import "./index.scss";
+</style>

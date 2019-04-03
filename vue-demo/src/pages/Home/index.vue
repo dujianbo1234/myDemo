@@ -50,7 +50,7 @@ export default {
   methods: {
     getSwiper() {
       //获取轮播图数据方法
-      this.$http.get("http://litc.pro:9999/v1/home/getBanners").then(result => {
+      this.$http.get("http://www.litc.pro:9999/v1/home/getBanners").then(result => {
         console.log(result.body);
         if (result.body.status === 200) {
           this.swiper = result.body.data;
@@ -69,6 +69,7 @@ export default {
 
 <style lang="less">
 .home {
+  // 顶部搜索样式
   .searchBox {
     padding-top: 5px;
     position: fixed;
@@ -102,12 +103,14 @@ export default {
         }
     }
   }
+  // 轮播图样式
   .swiper {
     img {
       width: 100%;
-      height: 100%;
+      // height: 100%;
     }
   }
+  // 展示样式
   .list {
     li {
       width: 33.3333%;

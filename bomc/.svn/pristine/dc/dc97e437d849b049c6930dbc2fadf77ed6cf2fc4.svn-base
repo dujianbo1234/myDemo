@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="60px" height="60px" viewBox="0 0 60 60" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>Group 15 Copy</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-2" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Artboard" transform="translate(-350.000000, -269.000000)">
+            <g id="数据列表" transform="translate(220.000000, 114.000000)">
+                <g id="Group-6" transform="translate(40.000000, 105.000000)">
+                    <g id="Group-15-Copy" transform="translate(90.000000, 50.000000)">
+                        <circle id="Oval-2-Copy" fill="#0486FE" cx="30" cy="30" r="30"></circle>
+                        <g id="control" transform="translate(18.000000, 16.000000)" fill="#FFFFFF" fill-rule="nonzero">
+                            <path d="M3,23.3020365 L21.9962205,23.3020365 L21.9962205,25.6769774 L3,25.6769774 L3,23.3020365 Z M18.4378248,9.05380809 L20.8122933,9.05380809 L20.8122933,22.116692 L18.4378248,22.116692 L18.4378248,9.05380809 Z M14.8751772,9.05380809 L17.2501181,9.05380809 L17.2501181,22.116692 L14.8751772,22.116692 L14.8751772,9.05380809 Z M11.3106398,9.05380809 L13.6855807,9.05380809 L13.6855807,22.116692 L11.3106398,22.116692 L11.3106398,9.05380809 Z M7.74988189,9.05380809 L10.1252953,9.05380809 L10.1252953,22.116692 L7.74988189,22.116692 L7.74988189,9.05380809 Z M4.18770669,9.05380809 L6.56264765,9.05380809 L6.56264765,22.116692 L4.18770669,22.116692 L4.18770669,9.05380809 Z M12.5120471,3 L3,6.6783947 L3,7.8661014 L22,7.8661014 L22,6.6783947 L12.5120471,3 Z" id="Shape"></path>
+                        </g>
+                    </g>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

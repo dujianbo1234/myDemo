@@ -1,0 +1,197 @@
+html{
+  -webkit-user-select: none;
+}
+.show {
+  display: block;
+}
+.hide {
+  display: none;
+}
+.fl {
+  float: left;
+}
+.fr {
+  float: right;
+}
+/*webkit内核*/
+.scroll_content::-webkit-scrollbar {
+  width:0px;
+  height:0px;
+}
+/*o内核*/
+.scroll_content .-o-scrollbar{
+  -moz-appearance: none !important;   
+  background: rgba(0,255,0,0) !important;  
+}
+/*IE10,IE11,IE12*/
+.scroll_content{
+  -ms-scroll-chaining: chained;
+  -ms-overflow-style: none;
+  -ms-content-zooming: zoom;
+  -ms-scroll-rails: none;
+  -ms-content-zoom-limit-min: 100%;
+  -ms-content-zoom-limit-max: 500%;
+  -ms-scroll-snap-type: proximity;
+  -ms-scroll-snap-points-x: snapList(100%, 200%, 300%, 400%, 500%);
+  -ms-overflow-style: none;
+  overflow: auto;
+}
+.scroll_content { overflow: -moz-scrollbars-none; }
+
+
+.test{
+  /* width: 50px;
+  height: 200px; */
+  /* overflow: auto; */
+  overflow: hidden !important;
+  float: left;
+  margin: 5px;
+  border: none;
+}
+.test:hover {
+  overflow:scroll !important;
+}
+/* .scrollbar{
+  width: 30px;
+  height: 300px;
+  margin: 0 auto;
+
+} */
+.test-1::-webkit-scrollbar {/*滚动条整体样式*/
+      width: 10px;     /*高宽分别对应横竖滚动条的尺寸*/
+      height: 10px;
+  }
+.test-1::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+      border-radius: 10px;
+       -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+      background: #eee;
+  }
+.test-1::-webkit-scrollbar-track {/*滚动条里面轨道*/
+      /* -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      background: #EDEDED; */
+  }
+
+
+
+.app-main {
+  height: 100%;
+}
+.app-container {
+  padding: 10px;
+}
+thead {
+    line-height: normal !important;
+}
+thead th{
+  text-align: center !important;
+}
+.el-table--enable-row-transition .el-table__body td {
+  text-align: center;
+}
+.dialogReport .el-table--enable-row-transition .el-table__body td {
+  text-align: left;
+}
+.content_main_select {
+  /* width: 60%; */
+}
+.content_head .content_main_select .el-form-item__label{
+  width: 250px !important;
+}
+.choice_model .el-dialog__body {
+  padding: 10px 40px;
+  color: #606266;
+  font-size: 14px;
+}
+.content_head span.el-cascader.el-cascader--medium {
+  width: 35%;
+}
+.el_foot .el-form-item__content {
+  margin-left: 17px !important;
+}
+.el-footer {
+  text-align: right !important;
+  padding-right: 50px;
+  height: 40px !important;
+  line-height: 40px;
+}
+title_head {
+  height: 35px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.content_col .el-form-item__label{
+  font-weight: 400;
+  text-align: right;
+  width: 115px;
+  word-break: break-word
+}
+/* .Proper .content_col .el-form-item__label {
+  width: 125px !important;
+}
+.Proper .el-form-item__content{
+  margin-left: 125px !important;
+} */
+.code .el-input__inner {
+  text-indent: 90px;
+}
+.el-tree {
+  display: inline-block;
+}
+.el-tree-node__content:hover {
+  background-color: #f5f7fa;
+  color: #409EFF;
+}
+.el-tree-node.is-focusable {
+  color: #000;
+}
+.el-tree-node.is-current.is-focusable {
+  color: #409EFF;
+}
+list_itme_sub .el-button--medium.is-circle{
+  padding: 5px !important;
+}
+.dialogReport .el-table th>.cell {
+  text-align: left !important;
+}
+.dialogReport .el-dialog__body {
+  padding-top: 5px;
+}
+.version_name .el-card__body,.version_list .el-card__body,.version_tab .el-card__body{
+  padding: 5px;
+}
+.el-tree__empty-block {
+  width: 200px !important;
+}
+.allAttributes .el-table th>.cell {
+  text-align: left !important;
+}
+.allAttributes .el-table--enable-row-transition .el-table__body td {
+  text-align: left;
+}
+.allAttributes .el-form-item__label{
+  color: #99a9bf !important;
+  font-weight: 400;
+}
+.allAttributes .el-card__body {
+  padding: 10px;
+}
+.allAttributes .el-dialog__body {
+  padding: 5px 10px;
+  color: #606266;
+  font-size: 14px;
+}
+.Proper .el-table__expanded-cell {
+  padding: 5px 40px;
+}
+.Proper .el-form-item {
+  margin-top: 5px !important;
+}
+.el-dialog {
+  margin: 30px auto;
+}
+.active .el-form-item__label:before {
+  content: '' !important;
+  margin-right: 4px;
+}

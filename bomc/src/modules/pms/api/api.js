@@ -1,0 +1,1 @@
+export const api = '/pms/api/v1';

@@ -1,0 +1,435 @@
+$bgColor: #f0f2f5;
+$borderColor: #99c1f4;
+$borderDefaultColor: #dcdfe6;
+$borderFocusColor: #409eff;
+$defaultColor: rgb(104, 199, 156);
+$panelBackground: #fff;
+$inputHeight: 25px;
+$marginBottom: 10px;
+
+/** 引入图标字体 **/
+// srcfont-face {
+//   font-family: 'iconfont';
+//   src: url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.eot');
+//   src: url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.eot?#iefix') format('embedded-opentype'),
+//   url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.woff2') format('woff2'),
+//   url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.woff') format('woff'),
+//   url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.ttf') format('truetype'),
+//   url-loader('src/assets/font_944386_zdtv1frca3p/iconfont.svg#iconfont') format('svg');
+// }
+// .iconfont {
+//   font-family: "iconfont" !important;
+//   font-size: 16px;
+//   font-style: normal;
+//   -webkit-font-smoothing: antialiased;
+//   -moz-osx-font-smoothing: grayscale;
+// }
+
+/** 运维管理中心模块--自定义ElementUI样式---记得顶层标签加class="oms-diy-elementui" **/
+
+// .el-cascader-menu {
+//   //经审查元素分析，el-cascader不在id="app"内，所以不能使用class命名空间
+//   min-height: 204px;
+//   height: auto;
+// }
+
+.multi-cascader .el-multicascader__label {
+  margin: 0;
+  background-color: transparent;
+  .el-tag {
+    margin: 0;
+  }
+  .popoverTip {
+    margin-bottom: 5px;
+  }
+}
+
+
+.oms-diy-elementui {
+  .el-form-item--medium .el-form-item__content,
+  .el-form-item--medium .el-form-item__label {
+    line-height: $inputHeight;
+  }
+  .el-form-item {
+    margin-bottom: $marginBottom;
+  }
+  .el-icon-time,
+  .el-icon-circle-close {}
+  .el-input--medium .el-input__icon {
+    line-height: $inputHeight;
+  }
+  .el-date-editor.el-input,
+  .el-date-editor.el-input__inner {
+    width: 100%;
+  }
+  .el-cascader {
+    width: 100%;
+    .el-input--medium .el-input__inner {
+      height: $inputHeight;
+      line-height: $inputHeight;
+    }
+  }
+  .el-cascader--medium {
+    line-height: $inputHeight;
+  }
+  // .el-tabs__nav-wrap::after {
+  //   width: auto;
+  //   background: none;
+  // }
+  /** 自定义的input框、select框样式 **/
+  .oms-input {
+    //自定义elementui输入框的样式
+    display: inline-block;
+    height: $inputHeight;
+    line-height: $inputHeight;
+    .el-input__inner {
+      height: $inputHeight;
+      line-height: $inputHeight;
+    }
+  }
+  .oms-select {
+    //自定义elementui下拉框的样式
+    width: 100%;
+    .el-input__inner {
+      width: 100%;
+      height: $inputHeight!important;
+      line-height: $inputHeight;
+    }
+    .el-input__suffix {
+      right: 5px;
+    }
+    .el-input__icon {}
+  }
+}
+
+
+/** 事件处理流程样式 **/
+
+.eventContainer {
+  position: relative;
+  padding: 10px 10px 10px 20px;
+  font-size: 14px;
+  font-family: "微软雅黑";
+  background: $bgColor;
+  .rowStyle {
+    width: 100%;
+    margin-bottom: $marginBottom;
+  }
+  .colClass {
+    float: left;
+  }
+  .oms-col-7 {
+    width: 66%;
+  }
+  .oms-col-3 {
+    width: 33%;
+  }
+  .paramsName {
+    float: left;
+    width: 120px;
+    height: 25px;
+    line-height: 25px;
+    text-align: right;
+  }
+  .paramsValue {
+    padding-left: 120px;
+    width: 100%;
+    // height: 25px;
+    // line-height: 25px;
+  }
+  .seeLeft {
+    margin-bottom: $marginBottom;
+  }
+  .uploadArea {
+    position: relative;
+    width: 100%;
+  }
+  .oms-upload {
+    margin-left: 120px;
+  }
+  // .el-upload {
+  //   float: left;
+  // }
+  .el-upload-list {
+    margin-top: 15px;
+    // float: left;
+    overflow: auto;
+  }
+  .el-upload-list__item {
+    float: left;
+    // margin: 0;
+    width: auto;
+  }
+  .el-upload-list__item:first-child {
+    margin-top: 5px;
+  }
+  .upload-icon {
+    position: absolute;
+    top: -1px;
+    left: 130px;
+    margin-left: 10px;
+    line-height: 26px;
+  }
+  .upload-tips {
+    position: absolute;
+    top: 6px;
+    left: 160px;
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.5)
+  }
+  .halfWidth {
+    width: 50%;
+  }
+  .changeIcon {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    z-index: 9;
+  }
+  .basicInfo {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .titleBar {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 0 40px 0 30px;
+  }
+  .oms-icon {
+    margin-left: 6px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .basicInfoArea,
+  .dealStepsArea,
+  .dealStepsArea,
+  .isInterruptArea {
+    padding: 30px 10px 20px;
+    border: 1px solid $borderColor;
+    background: $panelBackground;
+  }
+  .dealSteps {
+    margin-top: 20px;
+  }
+  .eventDicr {
+    .el-textarea__inner {
+      height: 95px;
+    }
+    .seeWarn {
+      position: absolute;
+      top: 30px;
+      left: -40px;
+      cursor: pointer;
+    }
+    .seeWarn:hover {
+      color: #409eff;
+    }
+  }
+  .eventDicr.firstSecondLine {
+    .el-textarea__inner {
+      height: 130px;
+    }
+  }
+  .eventDicr.closeEvent {
+    .el-textarea__inner {
+      height: 165px;
+    }
+  }
+  .dealSuggestion {
+    .el-textarea__inner {
+      height: 95px;
+    }
+    .oms-input {
+      height: auto;
+    }
+  }
+  .filesArea {
+    margin-top: 20px;
+    padding: 20px 10px;
+    border: 1px solid $borderColor;
+    background: $panelBackground;
+    .el-upload-list__item-name {
+      width: 165px;
+    }
+  }
+  .files-input {
+    width: 150px;
+  }
+  .uploadName {
+    width: 140px;
+    text-align: right;
+    height: 26px;
+    line-height: 26px;
+    font-weight: bold;
+    color: #606266;
+    padding-right: 12px;
+  }
+  .uploadNameEvent {
+    width: 130px;
+  }
+  .operation {
+    margin: 50px;
+    text-align: center;
+  }
+  .seeWarnPagination {
+    display: inline-block;
+    width: 100%;
+    text-align: right;
+    margin-top: 10px;
+  }
+  .warn-table-container {
+    padding: 0;
+    .el-table th,
+    .el-table tr {
+      background-color: #dcdfe6;
+      padding: 4px 0;
+      font-weight: normal;
+      color: #333;
+    }
+  }
+  .flow-chart {
+    margin-top: 40px;
+    min-height: 100vh;
+    background-color: $bgColor;
+    .chart {
+      width: 100%;
+      cursor: pointer;
+    }
+  }
+  .tabsArea {
+    margin-top: 20px;
+  }
+  .duration {
+    .el-input__inner {
+      padding-right: 40px;
+    }
+  }
+  .unit {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    color: rgba(0,0,0,0.7);
+    z-index: 999;
+  }
+  .textOverflow {
+    text-overflow: ellipsis;
+  }
+  .textarea {
+    position: relative;
+    .inputTips {
+      position: absolute;
+      bottom: 2px;
+      right: 20px;
+      color: #ddd;
+    }
+  }
+}
+
+.notice-content {
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ci-info {
+  position: absolute;
+  top: 8px;
+  right: 258px;
+  color: #929292;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.word-wrap {
+  word-wrap: break-word;
+}
+
+.type-match-container {
+  // padding: 16px;
+  .el-cascader {
+    width: 100%;
+  }
+  .warning-text {
+    line-height: 1.5;
+    margin-bottom: 16px;
+    color: #999;
+  }
+  .info-detail {
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .pagination {
+    text-align: center;
+    margin-top: 24px;
+  }
+  .el-select {
+    width: 100%;
+  }
+  .el-form--inline .el-form-item {
+    margin-right: 16px;
+  }
+  .box-card {
+    margin: 8px 0 16px 0;
+  }
+  .el-card__body {
+    .el-form-item {
+      margin-bottom: 0;
+    }
+  }
+}
+
+
+/** 问题处理流程 **/
+
+.problemContainer {
+  .problemDir {
+    .el-textarea__inner {
+      height: 130px;
+    }
+  }
+}
+
+/** 变更管理流程 **/
+.urgTaskImplement {
+  .changeFromDescr {
+    .el-textarea__inner {
+      height: 235px;
+    }
+  }
+}
+
+.iconfont {
+  cursor: pointer;
+}
+
+.default-color {
+  color: $defaultColor;
+  transition: all .3s;
+  &:hover {
+    opacity: .8;
+  }
+}
+
+.operate-btn-color {
+  background: #F4F8F9 !important;
+  border: 1px solid #F4F8F9 !important;
+  color: #333 !important;
+  &:hover {
+    background: #42B983 !important;
+    border: 1px solid #42B983 !important;
+    color: #fff !important;
+  }
+}
+
+.danger-btn-text {
+  color: #f56c6c;
+  &:hover {
+   color: #fd9090;
+  }
+}
+
+// .el-cascader-menus {
+//   height: 204px;
+//   overflow: auto;
+// }
